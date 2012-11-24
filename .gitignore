@@ -1,0 +1,13 @@
+/bin
+/build
+/XCMM
+/unpacked
+/tools
+/temp
+/mods
+/config
+/.settings
+log
+notify.log
+.classpath
+.project
