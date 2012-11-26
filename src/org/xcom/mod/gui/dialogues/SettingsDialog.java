@@ -45,8 +45,6 @@ import com.lipstikLF.LipstikLookAndFeel;
 import com.lipstikLF.theme.DefaultTheme;
 import com.lipstikLF.theme.KlearlooksTheme;
 import com.lipstikLF.theme.LightGrayTheme;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 public class SettingsDialog extends JDialog {
 	

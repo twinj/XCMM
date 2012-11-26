@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 import org.xcom.mod.Main;
-import org.xcom.mod.tools.maker.exceptions.ProcessFileChangesException;
 
 public class Patcher extends Main {
 	
