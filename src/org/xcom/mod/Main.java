@@ -124,9 +124,9 @@ public abstract class Main implements Runnable {
 	
 	protected final static String userDir = System.getProperty("user.dir");
 	
-	protected RunInBackground sync;
+	protected volatile RunInBackground sync;
 	protected Boolean DONE;
-	protected Boolean IN_GUI = false;
+	protected static Boolean IN_GUI = false;
 	
 	protected static java.util.ArrayList<Path> editedUpks = new java.util.ArrayList<Path>();
 	
@@ -446,7 +446,7 @@ public abstract class Main implements Runnable {
 		} catch (IOException | InterruptedException ex) {
 			ex.printStackTrace(System.err);
 		}
-		Main.print(Main.MAIN, "DECOMPRESSED [" + fileName + "]");
+		print("DECOMPRESSED [" + fileName, "]");
 	}
 	
 	/**
@@ -507,7 +507,7 @@ public abstract class Main implements Runnable {
 		
 		if (Files.exists(uncomp)) {
 			try {
-				Main.print(Main.MAIN, "SORTING FILE [" + fileName + "]");
+				print("SORTING FILE [" + fileName, "]");
 				
 				Path original = Paths.get(fileToDecompress);
 				Path originalMoveTo = Paths.get(unpacked, fileName
@@ -515,20 +515,19 @@ public abstract class Main implements Runnable {
 				final String cooked = XShape.getConfig().getCookedPath().toString();
 				
 				Files.move(original, originalMoveTo);
-				Main.print(Main.MAIN, "MOVING & RENAMING [" + fileName
-						+ "] TO [unpacked\\...original_compressed]");
+				print("MOVING & RENAMING ORIGINAL [" + original, "] TO ["
+						+ originalMoveTo, "]");
 				
 				Files.copy(uncomp, original);
-				Main.print(Main.MAIN, "MOVING [" + fileName
-						+ "] TO [CookedPCConsole\\]");
+				print("MOVING [" + uncomp, "] TO [" + original, "]");
 				
 				Path compSize = Paths.get(cooked, fileName + ".uncompressed_size");
-				
+				Path compSizeBkp = Paths.get(unpacked, fileName
+						+ ".uncompressed_size.bkp");
 				if (Files.exists(compSize)) {
-					Files.move(compSize,
-							Paths.get(unpacked, fileName + ".uncompressed_size.bkp"));
-					Main.print(Main.MAIN, "MOVING [" + fileName
-							+ "uncompressed_size] TO [unpacked\\...uncompressed_size..bkp.]");
+					Files.move(compSize, compSizeBkp);
+					print("MOVING [" + compSize, "uncompressed_size] TO [" + compSizeBkp
+							+ "]");
 				}
 			} catch (IOException ex) {
 				throw new IOException();
@@ -569,6 +568,7 @@ public abstract class Main implements Runnable {
 		} catch (IOException ex) {
 			throw new DownloadFailedException();
 		}
+		print("DOWNLOADED FROM [" + down.toString(), "]");
 		return temp;
 	}
 	
@@ -624,6 +624,8 @@ public abstract class Main implements Runnable {
 				ex.printStackTrace(System.err);
 				throw new ZipException();
 			}
+			print("UNZIPPED FROM [" + zipDir.toString(), "]");
+			
 		}
 	}
 	
