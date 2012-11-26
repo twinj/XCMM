@@ -34,30 +34,30 @@ import org.xcom.mod.tools.xshape.MHash;
  * 
  */
 final public class Worker implements Runnable {
-
+	
 	final ResFile mod;
 	final byte[] buffer;
 	final int start;
 	final int end;
 	final MessageDigest md;
 	int id;
-	int progress;
+	float progress;
 	RunInBackground ins;
-
+	
 	// @SuppressWarnings("VolatileArrayField")
 	final CountDownLatch mainCountDownLock;
 	final CountDownLatch workerCountDownLock;
 	final Thread[] workers;
-
+	
 	volatile byte[] resultBytes = null;
 	volatile int resultInt = -1;
 	volatile boolean isInstalled = false;
-
+	
 	public Worker(ResFile mod, byte[] buffer, int start, int end,
 			MessageDigest md, CountDownLatch mainCountDownLock,
 			CountDownLatch workerCountDownLock, Thread[] workers, int id,
-			RunInBackground ins, int progress) {
-
+			RunInBackground ins, float f) {
+		
 		this.mod = mod;
 		this.buffer = buffer;
 		this.start = start;
@@ -68,32 +68,31 @@ final public class Worker implements Runnable {
 		this.workers = workers;
 		this.id = id;
 		this.ins = ins;
-		this.progress = progress;
+		this.progress = f;
 	}
-
+	
 	@Override
 	public void run() {
-
+		
 		final int hashDataLength = mod.getSearchHashLength();
 		final int end = this.end - hashDataLength;
-
-		final int targetSum = mod.getBytesSum();
-		final byte[] searchHash = MHash.hexStringToBytes(mod
-				.getSearchHash());
-
+		
+		final long targetSum = mod.getByteSum();
+		final byte[] searchHash = MHash.hexStringToBytes(mod.getSearchHash());
+		
 		print("SEARCHER [" + id, "] STARTING");
-
+		
 		String work = "...";
-
-		int progressPlus = buffer.length / workers.length / progress;
-
+		
+		float progressPlus = buffer.length / workers.length / progress;
+		
 		for (int j = start; j <= end; ++j) {
 			final int m = j + hashDataLength;
 			int k = j;
 			int thisSum = 0;
-
+			
 			while (k < m) {
-				thisSum += buffer[k++];
+				thisSum += buffer[k++] & 0xFF;
 			}
 			if (ins != null) {
 				// check progress
@@ -102,10 +101,10 @@ final public class Worker implements Runnable {
 					progress--;
 				}
 			}
-
+			
 			if (Thread.interrupted()) {
 				if (ins != null) {
-					ins.getSync().plusProgress(progress);
+					ins.getSync().plusProgress((int) progress);
 				}
 				return;
 			}
@@ -115,32 +114,30 @@ final public class Worker implements Runnable {
 					if (j % 48 == (id * 1) % 24) {
 						print("SEARCHER [" + id, "] WORKING", (work += "."));
 					}
-
-					final byte[] bufferSegmt = Arrays.copyOfRange(buffer, j,
-							m);
+					
+					final byte[] bufferSegmt = Arrays.copyOfRange(buffer, j, m);
 					final byte[] hash = md.digest(bufferSegmt);
-
+					
 					if (Arrays.equals(hash, searchHash)) {
 						print("SEARCHER [" + id,
 								"] RESOURCE FOUND - BYTE SUMS EQUAL & SEARCH HASH FOUND");
-
+						
 						for (final HexEdit c : mod.getChanges()) {
-							print("SEARCHER [" + id,
-									"] BUFFER OFFSET [" + c.getOffset(),
+							print("SEARCHER [" + id, "] BUFFER OFFSET [" + c.getOffset(),
 									"] CHANGED TO [" + c.getData(), "]");
-
-							bufferSegmt[c.getOffset()] = DatatypeConverter
-									.parseHexBinary(c.getData())[0];
-
-							if (ins!=null) {
+							
+							bufferSegmt[c.getOffset()] = DatatypeConverter.parseHexBinary(c
+									.getData())[0];
+							
+							if (ins != null) {
 								ins.getSync().plusProgress(1);
 							}
 						}
-
+						
 						resultBytes = bufferSegmt;
 						resultInt = j;
 						isInstalled = true;
-
+						
 						for (Thread t : workers) {
 							if (!Thread.currentThread().equals(t)) {
 								t.interrupt();
@@ -154,15 +151,14 @@ final public class Worker implements Runnable {
 				}
 			}
 		}
-
+		
 		workerCountDownLock.countDown();
 		try {
 			workerCountDownLock.await();
-		} catch (InterruptedException ex) {
-		}
+		} catch (InterruptedException ex) {}
 		mainCountDownLock.countDown();
 	}
-
+	
 	private static void print(String... strings) {
 		Main.print(Main.INSTALL, strings);
 	}
