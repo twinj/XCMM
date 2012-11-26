@@ -107,12 +107,12 @@ public class XCMConsole extends Main {
             String invoker = args[0];
             
             if (invoker.equals(INVOKE_GUI) && args.length == 1) {
+            	IN_GUI = true;
                 XCMGUI.run(true);
             } else try {
                 XCMConsole.run(args);
             } catch (Exception e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
         }
     }
