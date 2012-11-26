@@ -38,7 +38,7 @@ import org.xcom.mod.Main;
 import org.xcom.mod.exceptions.XmlSaveException;
 import org.xcom.mod.gui.XCMGUI;
 import org.xcom.mod.gui.workers.DecompressInBackGround;
-import org.xcom.mod.gui.workers.RunInBackground;
+import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
 import org.xcom.mod.pojos.InstallLog;
 import org.xcom.mod.pojos.ResFile;
 import org.xcom.mod.pojos.XMod;
@@ -96,7 +96,7 @@ final public class Installer extends Main {
 		// Get upk files for each resource
 		List<ResFile> files = installPackage.getResFiles();
 		try {
-			upkFiles = getResUpkOwners(files);
+			upkFiles = findResourceUpkFile(files);
 			
 			List<ResFile> out = null;
 			
@@ -128,10 +128,10 @@ final public class Installer extends Main {
 					"Upk file not decompressed.", JOptionPane.YES_NO_OPTION);
 			
 			switch (n) {
-				case JOptionPane.YES_OPTION:
-						new DecompressInBackGround(uncFiles, src).execute();
-						break;					
-				default:
+				case JOptionPane.YES_OPTION :
+					new DecompressInBackGround(uncFiles, src).execute();
+					break;
+				default :
 			}
 			ERROR = Error.INS_UPK_FILE_COMPRESSED;
 			e.printStackTrace(System.err);
@@ -182,7 +182,7 @@ final public class Installer extends Main {
 		// Get upk files for each resource
 		List<ResFile> files = installPackage.getResFiles();
 		
-		upkFiles = getResUpkOwners(files);
+		upkFiles = findResourceUpkFile(files);
 		
 		List<ResFile> out = makeUPKChanges(files, new Vector<Path>(upkFiles), sync);
 		
@@ -205,7 +205,7 @@ final public class Installer extends Main {
 	 * @throws UpkFileNotDecompressedException
 	 * @throws UpkFileNotFoundException
 	 */
-	private static List<Path> getResUpkOwners(List<ResFile> files)
+	private static List<Path> findResourceUpkFile(List<ResFile> files)
 			throws UpkFileNotDecompressedException, UpkFileNotFoundException,
 			UpkFileAccessException {
 		
@@ -216,11 +216,13 @@ final public class Installer extends Main {
 		for (ResFile f : files) {
 			
 			Path path = Paths.get(config.getXcomPath(), COOKED, f.getUpkFilename());
+			
+			if (Files.notExists(path)) {
+				print("CANNOT FIND UPK FILE [" + path.getFileName(), "]");
+				throw new UpkFileNotFoundException();				
+			}
 			try {
-				if (Files.notExists(path)) {
-					print("CANNOT FIND UPK FILE [" + path.getFileName(), "]");
-					throw new UpkFileNotFoundException();
-				} else if (!Files.isWritable(path)) {
+				if (!Files.isWritable(path)) {
 					throw new IOException();
 				} else if (!isDecompressed(path)) {
 					if (!uncFiles.contains(path)) {
@@ -233,7 +235,6 @@ final public class Installer extends Main {
 				String msg = "CANNOT ACCESS UPK FILE [" + path.getFileName() + "]";
 				print(msg, "");
 				throw new UpkFileAccessException("IOException: " + msg);
-				// ALL ERRORS OK
 			}
 			print("UPK FILE FOUND AND IS DECOMPRESSED [" + path, "]");
 			upkFiles.add(path);
@@ -252,7 +253,7 @@ final public class Installer extends Main {
 	 * @return
 	 */
 	private static List<ResFile> makeUPKChanges(List<ResFile> files,
-			Vector<Path> upkFiles, RunInBackground sync)
+			Vector<Path> upkFiles, SyncProgress sync)
 			throws UpkResourceNotFoundException, UpkFileAccessException,
 			SearchInterruptedException {
 		
@@ -306,7 +307,7 @@ final public class Installer extends Main {
 						print("RESOURCE SAVED", "");
 						editedUpks.add(upkFile);
 						if (sync != null) {
-							sync.getSync().plusProgress(1);
+							sync.plusProgress(1);
 						}
 						break;
 					}
@@ -335,7 +336,7 @@ final public class Installer extends Main {
 				}
 			}
 			if (sync != null) {
-				sync.getSync().plusProgress(1);
+				sync.plusProgress(1);
 			}
 			i++;
 		}
@@ -357,7 +358,7 @@ final public class Installer extends Main {
 	 * @throws InterruptedException
 	 */
 	private static Worker[] doSearch(int threadsNum, Worker[] workers,
-			Thread[] threads, int i, ByteBuffer buffer, RunInBackground sync,
+			Thread[] threads, int i, ByteBuffer buffer, SyncProgress sync,
 			float[] progress, ResFile f) throws InterruptedException {
 		
 		final CountDownLatch mainCDLatch = new CountDownLatch(1);
@@ -397,18 +398,18 @@ final public class Installer extends Main {
 	}
 	
 	private static float[] calculateWorkProgress(List<ResFile> files,
-			Vector<Path> upkFiles, int threadsNum, RunInBackground sync) {
+			Vector<Path> upkFiles, int threadsNum, SyncProgress sync) {
 		
 		if (sync != null) {
-			sync.getSync().plusProgress(1);
+			sync.plusProgress(1);
 		}
 		
 		int i = 0;
-		int size = upkFiles.size();
-		float[] passesForFile = new float[size];
+		int size = files.size();
+		float[] passesForRes = new float[size];
 		
 		for (ResFile f : files) {
-			passesForFile[i++] = f.getChanges().size();
+			passesForRes[i++] = f.getChanges().size();
 		}
 		
 		// size twice as plusProgress called twice in file loops
@@ -420,8 +421,8 @@ final public class Installer extends Main {
 		// Group percentage
 		for (Path p : upkFiles) {
 			int length = (int) p.toFile().length();
-			sum += (length * passesForFile[i]);
-			progress[i] = (length * passesForFile[i]);
+			sum += (length * passesForRes[i]);
+			progress[i] = (length * passesForRes[i]);
 			i++;
 		}
 		i = 0;

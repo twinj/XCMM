@@ -33,7 +33,7 @@ import javax.xml.bind.JAXBException;
 import org.xcom.mod.Main;
 import org.xcom.mod.exceptions.XmlSaveException;
 import org.xcom.mod.gui.CopyFileException;
-import org.xcom.mod.gui.workers.RunInBackground;
+import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
 import org.xcom.mod.pojos.HexEdit;
 import org.xcom.mod.pojos.ModConfig;
 import org.xcom.mod.pojos.ResFile;
@@ -69,7 +69,7 @@ final public class Maker extends Main {
 			printXml(modConfig);
 			XMod xMod = generateXMod(modConfig, sync);
 			saveXModFiles(modConfig, xMod);
-			sync.getSync().plusProgress(1 * modConfig.getEditedFiles().size());
+			sync.plusProgress(1 * modConfig.getEditedFiles().size());
 			
 		} catch (XmlSaveException e) {
 			ERROR = Error.XML_SAVE_ERROR;
@@ -140,7 +140,7 @@ final public class Maker extends Main {
 	 * @throws DetectUpkChangesException
 	 * @throws CalculateHashException
 	 */
-	public static XMod generateXMod(ModConfig monfig, RunInBackground sync)
+	public static XMod generateXMod(ModConfig monfig, SyncProgress sync)
 			throws XModXmlAccessException, ProcessFileChangesException,
 			DetectUpkChangesException, CalculateHashException {
 		
@@ -190,7 +190,7 @@ final public class Maker extends Main {
 	 * @throws CalculateHashException
 	 */
 	public static List<ResFile> processResourceChanges(ModConfig mConfig,
-			RunInBackground sync) throws ProcessFileChangesException,
+			SyncProgress sync) throws ProcessFileChangesException,
 			DetectUpkChangesException, CalculateHashException {
 		List<ResFile> changes = new ArrayList<ResFile>();
 		
@@ -211,7 +211,7 @@ final public class Maker extends Main {
 			final int sum = getDataSum(originalResource);
 			
 			if (sync != null) {
-				sync.getSync().plusProgress(1);
+				sync.plusProgress(1);
 			}
 			
 			ResFile f = null;
@@ -220,7 +220,7 @@ final public class Maker extends Main {
 						upkFileName, hash.toString(), (int) Files.size(originalResource),
 						sum);
 				if (sync != null) {
-					sync.getSync().plusProgress(1);
+					sync.plusProgress(1);
 				}
 			} catch (IOException e) {
 				throw new ProcessFileChangesException("IOException,size");
@@ -233,7 +233,7 @@ final public class Maker extends Main {
 			printXml(f);
 			++i;
 			if (sync != null) {
-				sync.getSync().plusProgress(1);
+				sync.plusProgress(1);
 			}
 		}
 		return changes;
@@ -312,7 +312,7 @@ final public class Maker extends Main {
 	 * @throws DetectUpkChangesException
 	 */
 	static List<HexEdit> getUPKChanges(Path originalPath, Path modifedPath,
-			float progress, RunInBackground sync) throws DetectUpkChangesException {
+			float progress, SyncProgress sync) throws DetectUpkChangesException {
 		
 		List<HexEdit> list = new ArrayList<HexEdit>();
 		try (InputStream modified = Files.newInputStream(modifedPath);
@@ -343,7 +343,7 @@ final public class Maker extends Main {
 				if (sync != null) {
 					// check progress
 					if (offset % progressPlus == progressPlus - 1) {
-						sync.getSync().plusProgress(1);
+						sync.plusProgress(1);
 						progress--;
 					}
 				}

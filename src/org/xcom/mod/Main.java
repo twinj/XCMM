@@ -33,7 +33,7 @@ import org.xcom.mod.exceptions.XmlPrintException;
 import org.xcom.mod.exceptions.XmlSaveException;
 import org.xcom.mod.gui.CopyFileException;
 import org.xcom.mod.gui.streams.Stream;
-import org.xcom.mod.gui.workers.RunInBackground;
+import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
 import org.xcom.mod.pojos.Config;
 import org.xcom.mod.pojos.ModXml;
 import org.xcom.mod.tools.xshape.MHash;
@@ -124,14 +124,13 @@ public abstract class Main implements Runnable {
 	
 	protected final static String userDir = System.getProperty("user.dir");
 	
-	protected volatile RunInBackground sync;
-	protected Boolean DONE;
-	protected static Boolean IN_GUI = false;
+	protected volatile SyncProgress sync;
+	protected volatile Boolean DONE;
+	protected volatile static Boolean IN_GUI = false;
 	
 	protected static java.util.ArrayList<Path> editedUpks = new java.util.ArrayList<Path>();
 	
-	public Main() {
-		
+	public Main() {	
 		DONE = false;
 		ERROR = Error.NOTHING;
 	}
@@ -684,12 +683,12 @@ public abstract class Main implements Runnable {
 		print(MAIN, strings);
 	}
 	
-	public RunInBackground.SyncProgress getSync() {
+	public SyncProgress getSync() {
 		
-		return sync.getSync();
+		return sync;
 	}
 	
-	public void setSync(RunInBackground sync) {
+	public void setSync(SyncProgress sync) {
 		
 		this.sync = sync;
 	}

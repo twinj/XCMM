@@ -24,7 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import javax.xml.bind.DatatypeConverter;
 
 import org.xcom.mod.Main;
-import org.xcom.mod.gui.workers.RunInBackground;
+import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
 import org.xcom.mod.pojos.HexEdit;
 import org.xcom.mod.pojos.ResFile;
 import org.xcom.mod.tools.xshape.MHash;
@@ -42,7 +42,7 @@ final public class Worker implements Runnable {
 	final MessageDigest md;
 	int id;
 	float progress;
-	RunInBackground ins;
+	private SyncProgress sync;
 	
 	// @SuppressWarnings("VolatileArrayField")
 	final CountDownLatch mainCountDownLock;
@@ -56,7 +56,7 @@ final public class Worker implements Runnable {
 	public Worker(ResFile mod, byte[] buffer, int start, int end,
 			MessageDigest md, CountDownLatch mainCountDownLock,
 			CountDownLatch workerCountDownLock, Thread[] workers, int id,
-			RunInBackground ins, float f) {
+			SyncProgress sync, float f) {
 		
 		this.mod = mod;
 		this.buffer = buffer;
@@ -67,7 +67,7 @@ final public class Worker implements Runnable {
 		this.workerCountDownLock = workerCountDownLock;
 		this.workers = workers;
 		this.id = id;
-		this.ins = ins;
+		this.sync = sync;
 		this.progress = f;
 	}
 	
@@ -94,17 +94,17 @@ final public class Worker implements Runnable {
 			while (k < m) {
 				thisSum += buffer[k++] & 0xFF;
 			}
-			if (ins != null) {
+			if (sync != null) {
 				// check progress
-				if (j % progressPlus == progressPlus - 1) {
-					ins.getSync().plusProgress(1);
+				if (j % (int)progressPlus == progressPlus - 1) {
+					sync.plusProgress(1);
 					progress--;
 				}
 			}
 			
 			if (Thread.interrupted()) {
-				if (ins != null) {
-					ins.getSync().plusProgress((int) progress);
+				if (sync != null) {
+					sync.plusProgress((int) progress);
 				}
 				return;
 			}
@@ -129,8 +129,8 @@ final public class Worker implements Runnable {
 							bufferSegmt[c.getOffset()] = DatatypeConverter.parseHexBinary(c
 									.getData())[0];
 							
-							if (ins != null) {
-								ins.getSync().plusProgress(1);
+							if (sync != null) {
+								sync.plusProgress(1);
 							}
 						}
 						
