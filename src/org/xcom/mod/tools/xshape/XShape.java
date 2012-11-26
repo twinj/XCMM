@@ -37,7 +37,7 @@ import org.xcom.mod.tools.xshape.exceptions.CalculateHashException;
 /**
  * @author Anthony Surma
  */
-public class XShape extends Main implements Runnable {
+public class XShape extends Main {
     
     final static String VERSION = "2.0a";
     final static String CONFIG = "XSHAPE.config";
