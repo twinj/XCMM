@@ -1,5 +1,8 @@
 package org.xcom.mod.gui;
 
+import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -21,9 +24,15 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipException;
@@ -64,13 +73,17 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.text.DefaultCaret;
+import javax.swing.tree.TreeNode;
+import javax.xml.bind.JAXBException;
 
 import org.xcom.mod.Main;
 import org.xcom.mod.gui.dialogues.AboutDialog;
 import org.xcom.mod.gui.dialogues.SettingsDialog;
 import org.xcom.mod.gui.listeners.GetHashButton;
 import org.xcom.mod.gui.streams.Stream;
+import org.xcom.mod.gui.workers.DecompressInBackGround;
 import org.xcom.mod.gui.workers.DownloadWorker;
+import org.xcom.mod.gui.workers.ExtractInBackGround;
 import org.xcom.mod.gui.workers.RunInBackground;
 import org.xcom.mod.pojos.Config;
 import org.xcom.mod.pojos.ModConfig;
@@ -80,7 +93,7 @@ import org.xcom.mod.tools.maker.Maker;
 import org.xcom.mod.tools.xshape.XShape;
 
 import com.lipstikLF.LipstikLookAndFeel;
-import com.lipstikLF.theme.LightGrayTheme;
+import com.lipstikLF.theme.KlearlooksTheme;
 
 public class XCMGUI extends Main {
 	
@@ -123,12 +136,16 @@ public class XCMGUI extends Main {
 	private JButton getDecompressorButton;
 	private JButton getExtractorButton;
 	
+	private static SettingsDialog ad;
+	
 	/**
 	 * Create the gui.
 	 * 
 	 * @param config
 	 */
 	public XCMGUI() throws HeadlessException {
+		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(
+				XCMGUI.class.getResource("/org/xcom/mod/gui/icons/256_icon_04.jpg")));
 		
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setPreferredSize(new Dimension(800, 600));
@@ -140,12 +157,12 @@ public class XCMGUI extends Main {
 			UIManager.setLookAndFeel("com.lipstikLF.LipstikLookAndFeel");
 			
 			// LipstikLookAndFeel.setMyCurrentTheme(new DefaultTheme());
-			LipstikLookAndFeel.setMyCurrentTheme(new LightGrayTheme());
-			// LipstikLookAndFeel.setMyCurrentTheme(new KlearlooksTheme());
+			// LipstikLookAndFeel.setMyCurrentTheme(new LightGrayTheme());
+			LipstikLookAndFeel.setMyCurrentTheme(new KlearlooksTheme());
 			
 			// Throw exception if there is an error setting the look and feel.
 		} catch (Exception e) {
-			System.err.println("An error has ocurred while setting the look "
+			print("An error has ocurred while setting the look "
 					+ "and feel of the program");
 		} // should probably add metal L&F setting for backup
 		
@@ -247,8 +264,6 @@ public class XCMGUI extends Main {
 	private void checkConfig() {
 		
 		String name = config.getAuthor();
-		SettingsDialog ad = new SettingsDialog(config);
-		
 		if (name.isEmpty() || (!isXComPathValid(config.getXcomPath()))
 				|| (!isUnPackedPathValid(config.getUnpackedPath()))
 				|| name.equals("unknown")) {
@@ -275,15 +290,14 @@ public class XCMGUI extends Main {
 	 * Initialise the contents of the frame.
 	 */
 	private void initialise() {
-		
-		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(
-				XCMGUI.class.getResource("/org/xcom/mod/gui/icons/80_icon_04.jpg")));
 		frame.setMinimumSize(new Dimension(655, 460));
 		frame.setBounds(100, 100, 639, 503);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		JMenuBar menuBar = new JMenuBar();
 		frame.getContentPane().add(menuBar, BorderLayout.NORTH);
+		
+		ad = new SettingsDialog(config);
 		
 		JMenu menuHome = new JMenu("File");
 		menuHome.setMnemonic(KeyEvent.VK_F);
@@ -295,7 +309,7 @@ public class XCMGUI extends Main {
 			
 			public void actionPerformed(ActionEvent e) {
 				
-				print(MAIN, "CLOSING");
+				print("CLOSING", "");
 				if (frame.isDisplayable()) {
 					frame.dispose();
 				}
@@ -313,11 +327,10 @@ public class XCMGUI extends Main {
 				
 				try {
 					@SuppressWarnings("unused")
-					Process p = new ProcessBuilder("cmd", "/C").start();
+					Process p = new ProcessBuilder("cmd.exe", "/C", "start").start();
 				} catch (IOException ex) {
 					ex.printStackTrace(System.err);
 				}
-				
 			}
 		});
 		toolsMiCmd.setMnemonic(KeyEvent.VK_O);
@@ -331,8 +344,6 @@ public class XCMGUI extends Main {
 		settingsMiConfig.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				
-				SettingsDialog ad = new SettingsDialog(config);
 				ad.setVisible(true);
 			}
 		});
@@ -369,7 +380,7 @@ public class XCMGUI extends Main {
 		modManager.add(tabbedPane);
 		
 		JPanel homeTab = new JPanel();
-		homeTab.setToolTipText("http://www.gildor.org/");
+		homeTab.setToolTipText("");
 		homeTab.setBackground(Color.WHITE);
 		homeTab.setOpaque(false);
 		tabbedPane.addTab("Home", null, homeTab, "XCom Edit home");
@@ -477,7 +488,7 @@ public class XCMGUI extends Main {
 		JButton gildorsLinkButton = new JButton(
 				"<HTML>Click the <FONT color=\\\"#000099\\\"><U>link</U></FONT> to go to Gildor's website.</HTML>");
 		gildorsLinkButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		gildorsLinkButton.setToolTipText("http://www.gildor.org/");
+		gildorsLinkButton.setToolTipText("");
 		gildorsLinkButton.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
@@ -485,9 +496,10 @@ public class XCMGUI extends Main {
 				JButton src = (JButton) e.getSource();
 				if (Desktop.isDesktopSupported()) {
 					try {
-						Desktop.getDesktop().browse(new URL(src.getToolTipText()).toURI());
+						Desktop.getDesktop().browse(
+								new URL("http://www.gildor.org/").toURI());
 					} catch (IOException | URISyntaxException ex) {
-						ex.printStackTrace();
+						ex.printStackTrace(System.err);
 					}
 				}
 			}
@@ -495,9 +507,214 @@ public class XCMGUI extends Main {
 		gildorsLinkButton.setBorderPainted(false);
 		homeTab.add(gildorsLinkButton);
 		
+		Component rigidArea_6 = Box.createRigidArea(new Dimension(20, 20));
+		rigidArea_6.setPreferredSize(new Dimension(200, 20));
+		homeTab.add(rigidArea_6);
+		
 		JSeparator separator_4 = new JSeparator();
 		separator_4.setPreferredSize(new Dimension(200, 3));
 		homeTab.add(separator_4);
+		
+		JButton btnRestoreOriginalGame = new JButton("Restore Original");
+		btnRestoreOriginalGame.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				final Path home = Paths.get(config.getUnpackedPath());
+				final String uSize = ".uncompressed_size.bkp";
+				final String oComp = ".original_compressed";
+				
+				int n = JOptionPane
+						.showConfirmDialog(
+								frame,
+								"This will replace any existing resources in the Cooked directory.\nDo you still wish to continue?",
+								"Resotre Upk Backup", JOptionPane.YES_NO_OPTION);
+				
+				switch (n) {
+					case JOptionPane.YES_OPTION :
+						String msg = "The files have been restored.";
+						String title = "Upk File Restore";
+						int op = JOptionPane.PLAIN_MESSAGE;
+						
+						print(
+								"ATTEMPTING TO RESTORE ORIGINAL UPK FILES BACKED UP IN UNPACKED",
+								"");
+						print("UNPACKED PATH [" + home, "]");
+						
+						Finder f = null;
+						try {
+							f = new Finder(uSize, oComp);
+							Files.walkFileTree(home, f);
+						} catch (IOException ex) {
+							msg = "There was an error restoring the files.";
+							ex.printStackTrace(System.err);
+						}
+						
+						if (f != null && !(f.getNumMatches() > 0)) {
+							msg = "There were no files to restore.";
+						}
+						
+						JOptionPane.showMessageDialog(frame, msg, title, op);
+						break;
+				}
+			}
+			class Finder extends SimpleFileVisitor<Path> {
+				
+				private final Path cooked = config.getCookedPath();
+				private final Path home = Paths.get(config.getUnpackedPath());
+				
+				private final PathMatcher matcherUSize;
+				private final PathMatcher matcherOrigCompress;
+				
+				private final String uSize;
+				private final String oComp;
+				
+				private int numMatches = 0;
+				
+				Finder(String u_SizeBack, String orig_Compress) {
+					
+					this.uSize = u_SizeBack;
+					this.oComp = orig_Compress;
+					
+					print("COOKED PATH [" + cooked, "]");
+					matcherUSize = FileSystems.getDefault().getPathMatcher(
+							"glob:" + "*" + uSize);
+					matcherOrigCompress = FileSystems.getDefault().getPathMatcher(
+							"glob:" + "*" + orig_Compress);
+					
+				}
+				
+				// Compares the glob pattern against
+				// the file or directory name.
+				void find(Path file) {
+					Path name = file.getFileName();
+					String temp = name.toString();
+					print("ATTEMPTING TO MATCH [" + name, "]");
+					
+					if (name != null && matcherUSize.matches(name)) {
+						String baseName = name.toString().substring(0,
+								temp.length() - uSize.length());
+						
+						Path to = Paths.get(cooked.toString(), baseName
+								+ ".uncompressed_size");
+						numMatches++;
+						
+						try {
+							Files.move(file, to);
+						} catch (IOException ex) {
+							ex.printStackTrace(System.err);
+						}
+						print("MOVING & RENAMING [" + name, "] TO [" + to.getFileName(),
+								"]");
+					}
+					
+					if (name != null && matcherOrigCompress.matches(name)) {
+						String baseName = name.toString().substring(0,
+								temp.length() - oComp.length());
+						
+						Path to = Paths.get(cooked.toString(), baseName);
+						numMatches++;
+						
+						try {
+							Files.move(file, to, StandardCopyOption.REPLACE_EXISTING);
+						} catch (IOException ex) {
+							ex.printStackTrace();
+						}
+						print("MOVING & RENAMING [" + name + "] TO [" + to.getFileName(),
+								"]");
+					}
+				}
+				// Invoke the pattern matching
+				// method on each file.
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+					find(file);
+					return CONTINUE;
+				}
+				
+				// Invoke the pattern matching
+				// method on each directory.
+				@Override
+				public FileVisitResult preVisitDirectory(Path dir,
+						BasicFileAttributes attrs) {
+					if (dir.equals(home)) return CONTINUE;
+					else return SKIP_SUBTREE;
+				}
+				
+				@Override
+				public FileVisitResult visitFileFailed(Path file, IOException exc) {
+					System.err.println(exc);
+					return CONTINUE;
+				}
+				
+				public int getNumMatches() {
+					return numMatches;
+				}
+			}
+		});
+		
+		Component rigidArea_7 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_7);
+		
+		JLabel lblManageUpkFiles = new JLabel("Manage Upk files");
+		homeTab.add(lblManageUpkFiles);
+		
+		Component rigidArea_8 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_8);
+		homeTab.add(btnRestoreOriginalGame);
+		
+		JButton btnDecompressUpk = new JButton("Decompress");
+		btnDecompressUpk.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = new JFileChooser();
+				fc.setCurrentDirectory(getConfig().getCookedPath().toFile());
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				fc.setDragEnabled(true);
+				
+				int returnVal = fc.showOpenDialog(frame);
+				
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					java.io.File file = fc.getSelectedFile();
+					try {
+						decompressWithToolCheck(file.toPath(),
+								Paths.get("tools", "decompress.exe"));
+					} catch (MalformedURLException ex) {
+						ex.printStackTrace();
+					}
+				} else {}
+			}
+		});
+		homeTab.add(btnDecompressUpk);
+		
+		JButton btnUnpack = new JButton("Extract");
+		btnUnpack.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = new JFileChooser();
+				fc.setCurrentDirectory(new File(getConfig().getUnpackedPath()));
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				fc.setDragEnabled(true);
+				
+				int returnVal = fc.showOpenDialog(frame);
+				
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					java.io.File file = fc.getSelectedFile();
+					try {
+						extractWithToolCheck(file.toPath(),
+								Paths.get("tools", "extract.exe"), (JComponent) e.getSource());
+					} catch (MalformedURLException ex) {
+						ex.printStackTrace(System.err);
+					}
+				} else {}
+			}
+		});
+		homeTab.add(btnUnpack);
+		
+		Component rigidArea_9 = Box.createRigidArea(new Dimension(20, 20));
+		rigidArea_9.setPreferredSize(new Dimension(200, 20));
+		homeTab.add(rigidArea_9);
+		
+		JSeparator separator_5 = new JSeparator();
+		separator_5.setPreferredSize(new Dimension(200, 3));
+		homeTab.add(separator_5);
 		
 		JPanel makerTab = new JPanel();
 		
@@ -526,6 +743,7 @@ public class XCMGUI extends Main {
 		hBoxModName.add(lblName);
 		
 		Component horizontalStrut = Box.createHorizontalStrut(20);
+		horizontalStrut.setPreferredSize(new Dimension(19, 0));
 		hBoxModName.add(horizontalStrut);
 		
 		fieldModName = new JTextField();
@@ -554,11 +772,6 @@ public class XCMGUI extends Main {
 		Component verticalStrut_2 = Box.createVerticalStrut(20);
 		verticalBox.add(verticalStrut_2);
 		
-		JSeparator separator_1 = new JSeparator();
-		separator_1.setPreferredSize(new Dimension(200, 3));
-		separator_1.setMinimumSize(new Dimension(200, 0));
-		verticalBox.add(separator_1);
-		
 		Box vBoxModDescription = Box.createVerticalBox();
 		verticalBox.add(vBoxModDescription);
 		vBoxModDescription.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -572,7 +785,7 @@ public class XCMGUI extends Main {
 		verticalStrut.setMinimumSize(new Dimension(0, 5));
 		
 		JSplitPane splitPane = new JSplitPane();
-		splitPane.setBounds(10, 130, 200, 193);
+		splitPane.setBounds(10, 130, 200, 195);
 		makerPanel.add(splitPane);
 		splitPane.setBorder(null);
 		splitPane.setOneTouchExpandable(true);
@@ -613,7 +826,7 @@ public class XCMGUI extends Main {
 		installPanel.setLayout(null);
 		
 		Box vBoxInstall = Box.createVerticalBox();
-		vBoxInstall.setBounds(6, 29, 208, 38);
+		vBoxInstall.setBounds(10, 30, 200, 100);
 		installPanel.add(vBoxInstall);
 		
 		Box hBModSelected = Box.createHorizontalBox();
@@ -623,6 +836,7 @@ public class XCMGUI extends Main {
 		hBModSelected.add(lnlModSelected);
 		
 		Component horizontalStrut_2 = Box.createHorizontalStrut(20);
+		horizontalStrut_2.setPreferredSize(new Dimension(12, 0));
 		hBModSelected.add(horizontalStrut_2);
 		
 		final JTextField textFieldModSelected = new JTextField();
@@ -634,9 +848,67 @@ public class XCMGUI extends Main {
 		Component verticalStrut_3 = Box.createVerticalStrut(20);
 		vBoxInstall.add(verticalStrut_3);
 		
-		JLabel lblNewLabel = new JLabel("Room for more features");
-		lblNewLabel.setBounds(6, 101, 115, 14);
-		installPanel.add(lblNewLabel);
+		Box horizontalBox = Box.createHorizontalBox();
+		vBoxInstall.add(horizontalBox);
+		horizontalBox.setAlignmentY(0.5f);
+		
+		JLabel label = new JLabel("Author:");
+		horizontalBox.add(label);
+		
+		Component horizontalStrut_3 = Box.createHorizontalStrut(20);
+		horizontalStrut_3.setPreferredSize(new Dimension(40, 0));
+		horizontalBox.add(horizontalStrut_3);
+		
+		final JTextField textFieldInstallAuthor = new JTextField();
+		textFieldInstallAuthor.setBackground(SystemColor.info);
+		textFieldInstallAuthor.setEditable(false);
+		textFieldInstallAuthor.setText((String) null);
+		textFieldInstallAuthor.setColumns(10);
+		horizontalBox.add(textFieldInstallAuthor);
+		
+		Component verticalStrut_5 = Box.createVerticalStrut(20);
+		vBoxInstall.add(verticalStrut_5);
+		
+		Box verticalBox_1 = Box.createVerticalBox();
+		vBoxInstall.add(verticalBox_1);
+		verticalBox_1.setAlignmentX(0.5f);
+		
+		JLabel label_1 = new JLabel("Mod Description:");
+		verticalBox_1.add(label_1);
+		
+		Component verticalStrut_4 = Box.createVerticalStrut(20);
+		verticalStrut_4.setPreferredSize(new Dimension(0, 5));
+		verticalStrut_4.setMinimumSize(new Dimension(0, 5));
+		verticalBox_1.add(verticalStrut_4);
+		
+		JSplitPane splitPane_1 = new JSplitPane();
+		splitPane_1.setOrientation(JSplitPane.VERTICAL_SPLIT);
+		splitPane_1.setOneTouchExpandable(true);
+		splitPane_1.setBorder(null);
+		splitPane_1.setBounds(10, 130, 200, 195);
+		installPanel.add(splitPane_1);
+		
+		final JEditorPane installModDescription = new JEditorPane();
+		installModDescription.setEditable(false);
+		installModDescription.setBackground(SystemColor.info);
+		installModDescription.setPreferredSize(new Dimension(110, 20));
+		installModDescription.setMinimumSize(new Dimension(6, 46));
+		installModDescription.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		installModDescription.setBorder(new EtchedBorder(EtchedBorder.LOWERED,
+				null,
+				
+				null));
+		installModDescription.setAlignmentX(0.0f);
+		splitPane_1.setLeftComponent(installModDescription);
+		
+		JPanel panel_1 = new JPanel();
+		panel_1.setPreferredSize(new Dimension(10, 100));
+		splitPane_1.setRightComponent(panel_1);
+		
+		JSeparator separator_6 = new JSeparator();
+		separator_6.setPreferredSize(new Dimension(200, 3));
+		separator_6.setMinimumSize(new Dimension(200, 0));
+		panel_1.add(separator_6);
 		
 		JPanel centre = new JPanel();
 		frame.getContentPane().add(centre, BorderLayout.CENTER);
@@ -1063,15 +1335,34 @@ public class XCMGUI extends Main {
 						if (select == 0) {
 							installButton.setEnabled(false);
 							textFieldModSelected.setText("");
+							textFieldInstallAuthor.setText("");
+							installModDescription.setText("");
+
 							
 						} else if (select == 1) {
 							installButton.setEnabled(true);
-							textFieldModSelected.setText(tree.getRoot()
-									.getChildAt(tree.getSelectionRows()[0]).getFileShortName());
+							
+							File f = tree.getRoot().getChildAt(tree.getSelectionRows()[0])
+									.getFile();
+							
+							XMod mod = null;
+							try {
+								mod = (XMod) u.unmarshal(f);
+							} catch (JAXBException ex) {
+								ex.printStackTrace(System.err);
+							}
+							
+							if (mod != null) {
+								textFieldModSelected.setText(mod.getName());					
+								textFieldInstallAuthor.setText(mod.getAuthor());
+								installModDescription.setText(mod.getDescription());
+							}
 							
 						} else if (select > 1) {
 							installButton.setEnabled(false);
 							textFieldModSelected.setText("");
+							textFieldInstallAuthor.setText("");
+							installModDescription.setText("");
 						}
 					}
 				});
@@ -1269,7 +1560,7 @@ public class XCMGUI extends Main {
 					new XCMGUI();
 					XCMGUI.getFrame().setVisible(true);
 				} catch (Exception e) {
-					e.printStackTrace();
+					e.printStackTrace(System.err);
 				}
 			}
 		});
@@ -1350,14 +1641,19 @@ public class XCMGUI extends Main {
 			
 			List<String> fileNames = new java.util.ArrayList<String>();
 			
+			String files = "";
+			
 			for (File f : originalFiles) {
+				files += (" | " + f.getName());
+				
 				fileNames.add(f.getAbsolutePath().substring(
 						config.getUnpackedPath().length()));
-				print(MAKE, "ORIGINAL FILE [" + f.getName(), "]");
 			}
+			
+			print(MAKE, "ORIGINAL FILES [" + files, "]");
 			modConfig.setOriginalFilePaths(fileNames);
 			
-			print(MAKE, "READY TO COMPARE FILES");
+			// print(MAKE, "READY TO COMPARE FILES", "");
 			
 			final Maker main = new Maker(modConfig);
 			RunInBackground work = new RunInBackground(frame, main, "Making mod "
@@ -1442,7 +1738,7 @@ public class XCMGUI extends Main {
 					break;
 			}
 			
-			final Installer main = new Installer(xmod);
+			final Installer main = new Installer(xmod, (JComponent) e.getSource());
 			RunInBackground swingInstaller = new RunInBackground(frame, main,
 					"Installing " + xmod.getName()) {
 				
@@ -1588,7 +1884,7 @@ public class XCMGUI extends Main {
 				try {
 					get();
 				} catch (InterruptedException | ExecutionException ex) {
-					ex.printStackTrace();
+					ex.printStackTrace(System.err);
 					
 					switch (e) {
 						case NOTHING : // SHOULD NOT GET THIS CASE IF ERRORS HANDLED
@@ -1666,8 +1962,61 @@ public class XCMGUI extends Main {
 		dlDecom.execute();
 	}
 	
+	/**
+	 * 
+	 * @param fileToDecom
+	 * @param decompress
+	 * @throws MalformedURLException
+	 */
+	public static void decompressWithToolCheck(final Path fileToDecom,
+			Path decompress) throws MalformedURLException {
+		if (Files.notExists(decompress)) {
+			final String url = "http://www.gildor.org/down/32/umodel/decompress.zip";
+			final String saveAs = "decompress.zip";
+			
+			XCMGUI.downloadZippedTool(url, saveAs, null, new Runnable() {
+				@Override
+				public void run() {
+					new DecompressInBackGround(fileToDecom).execute();
+				}
+			});
+		} else {
+			new DecompressInBackGround(fileToDecom).execute();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param extract
+	 * @param upkToExtract
+	 * @param src
+	 * @throws MalformedURLException
+	 */
+	public static void extractWithToolCheck(final Path upkToExtract,
+			final Path extract, final JComponent src) throws MalformedURLException {
+		if (Files.notExists(extract)) {
+			
+			final String url = "http://www.gildor.org/down/32/umodel/extract.zip";
+			final String saveAs = "extract.zip";
+			
+			XCMGUI.downloadZippedTool(url, saveAs, null, new Runnable() {
+				@Override
+				public void run() {
+					new ExtractInBackGround(upkToExtract, src).execute();
+				}
+			});
+			
+		} else {
+			new ExtractInBackGround(upkToExtract, src).execute();
+		}
+	}
+	
 	@Override
 	public void run() {
 		
+	}
+	
+	private static void print(String... strings) {
+		print(MAIN, strings);
 	}
 }
