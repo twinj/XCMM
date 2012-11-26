@@ -165,10 +165,11 @@ final public class Maker extends Main {
 			
 			// Calculate hash
 			md.update(b, 0, b.length);
-			xMod.setHash(MHash.toString(md.digest()));
+			b = md.digest();
+			xMod.setHash(MHash.toString(b));
 			md.reset();
 			
-			print("MOD HASH [", xMod.getHash(), "]");
+			print("MOD HASH [", MHash.toPrintString(b), "]");
 			printXml(xMod);
 		} catch (JAXBException e) {
 			throw new XModXmlAccessException();
@@ -201,7 +202,7 @@ final public class Maker extends Main {
 		for (String path : mConfig.getOriginalFilePaths()) {
 			
 			Path originalResource = Paths.get(config.getUnpackedPath() + path);
-			String upkFileName = getUPKFilename(originalResource);
+			String upkFileName = getUpkFilename(originalResource);
 			MHash hash = new MHash(originalResource);
 			
 			print("PROCESSING ORIGINAL [" + originalResource.getFileName(), "] FROM ["
@@ -238,38 +239,7 @@ final public class Maker extends Main {
 		}
 		return changes;
 	}
-	/**
-	 * Gui only. Determines the progress to be allocated for each part of work to
-	 * be done.
-	 * 
-	 * @param mConfig
-	 * @return
-	 */
-	private static float[] calculateWorkProgress(ModConfig mConfig) {
-		List<File> editedFiles = mConfig.getEditedFiles();
-		int i = 0;
-		int size = editedFiles.size();
-		// fileSum - size; fileDone - size; getHaSh - size; save; copy
-		float progressStart = (99 - (size - size - size - size));
 		
-		float[] progress = new float[size];
-		
-		int sum = 0;
-		// Group percentage
-		for (File f : editedFiles) {
-			int length = (int) f.length();
-			sum += length;
-			progress[i] = length;
-			i++;
-		}
-		i = 0;
-		for (float p : progress) {
-			float n = (p / sum) * progressStart;
-			progress[i] = n;
-		}
-		return progress;
-	}
-	
 	/**
 	 * Sum the byte contents of the file to help with confirming hash
 	 * 
@@ -357,6 +327,38 @@ final public class Maker extends Main {
 	
 	private static void print(String... strings) {
 		print(MAKE, strings);
+	}
+	
+	/**
+	 * Gui only. Determines the progress to be allocated for each part of work to
+	 * be done.
+	 * 
+	 * @param mConfig
+	 * @return
+	 */
+	private static float[] calculateWorkProgress(ModConfig mConfig) {
+		List<File> editedFiles = mConfig.getEditedFiles();
+		int i = 0;
+		int size = editedFiles.size();
+		// fileSum - size; fileDone - size; getHaSh - size; save; copy
+		float progressStart = (99 - (size - size - size - size));
+		
+		float[] progress = new float[size];
+		
+		int sum = 0;
+		// Group percentage
+		for (File f : editedFiles) {
+			int length = (int) f.length();
+			sum += length;
+			progress[i] = length;
+			i++;
+		}
+		i = 0;
+		for (float p : progress) {
+			float n = (p / sum) * progressStart;
+			progress[i] = n;
+		}
+		return progress;
 	}
 	
 }
