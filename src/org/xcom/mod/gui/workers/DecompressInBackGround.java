@@ -29,14 +29,20 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 	}
 	
 	public DecompressInBackGround(List<Path> decomFiles, JComponent src) {
-		super();
-		this.decomFiles = decomFiles;
+		this(decomFiles);
+		this.src = src;
+	}
+	
+	public DecompressInBackGround(Path decomFile, JComponent src) {
+		this(decomFile);
 		this.src = src;
 	}
 	
 	@Override
 	protected Void doInBackground() {
-		
+		if (src != null) {
+			src.setEnabled(false);
+		}
 		for (Path p : decomFiles) {
 			Main.decompress(p);
 		}
@@ -60,6 +66,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 				ex.printStackTrace(System.err);
 			}
 		}
+		decompressionComplete();
 		if (src != null) {
 			src.setEnabled(true);
 		}

@@ -18,7 +18,6 @@ public abstract class DownloadWorker extends SwingWorker<Path, Void> {
 	@SuppressWarnings("unused")
 	private Path saveToDir;
 	private String saveAs;
-	@SuppressWarnings("unused")
 	private JComponent src;
 	
 	public DownloadWorker(final String url, final Path saveToDir,
@@ -33,6 +32,9 @@ public abstract class DownloadWorker extends SwingWorker<Path, Void> {
 	
 	@Override
 	protected Path doInBackground() throws Exception {
+		if (src !=null) {
+			src.setEnabled(false);
+		}
 		return Main.download(saveAs, url);
 	}
 	
@@ -41,7 +43,10 @@ public abstract class DownloadWorker extends SwingWorker<Path, Void> {
 		try {
 			get();
 		} catch (InterruptedException | ExecutionException ex) {
-			ex.printStackTrace();
+			 if (src !=null) {
+				 src.setEnabled(true);
+			 }
+			ex.printStackTrace(System.err);
 		}
 	}
 	

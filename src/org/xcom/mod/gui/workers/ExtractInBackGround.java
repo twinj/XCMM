@@ -15,7 +15,7 @@ import org.xcom.mod.gui.XCMGUI;
 public class ExtractInBackGround extends SwingWorker<Void, Void> {
 	
 	private List<Path> decomFiles = new ArrayList<>();
-	private JComponent src;
+	private JComponent src = null;
 	
 	public ExtractInBackGround(Path decomFile) {
 		super();
@@ -28,14 +28,21 @@ public class ExtractInBackGround extends SwingWorker<Void, Void> {
 	}
 	
 	public ExtractInBackGround(List<Path> decomFiles, JComponent src) {
-		super();
-		this.decomFiles = decomFiles;
+		this(decomFiles);
+		this.src = src;
+	}
+	
+	public ExtractInBackGround(Path decomFile, JComponent src) {
+		this(decomFile);
 		this.src = src;
 	}
 	
 	@Override
 	protected Void doInBackground() {
 		
+		if (src != null) {
+			src.setEnabled(false);
+		}
 		for (Path p : decomFiles) {
 			Main.extract(p);
 		}

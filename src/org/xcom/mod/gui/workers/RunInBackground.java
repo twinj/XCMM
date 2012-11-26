@@ -73,24 +73,19 @@ public abstract class RunInBackground extends SwingWorker<Main, Void> implements
         
         int progress = 0;
         
-        public synchronized int getProgress() {
-            
+        public synchronized int getProgress() {         
             return progress;
-        }
-        
-        public synchronized void plusProgress(int p) {
-            
+        }       
+        public synchronized void plusProgress(int p) {         
             progress += p;
         }
     }
     
-    public SyncProgress getSync() {
-        
+    public SyncProgress getSync() {     
         return sync;
     }
     
-    public void setSync(SyncProgress sync) {
-        
+    public void setSync(SyncProgress sync) {      
         this.sync = sync;
     }
     
