@@ -67,9 +67,9 @@ final public class Maker extends Main {
 		try {
 			saveXml(modConfig);
 			printXml(modConfig);
-			XMod xMod = generateXMod(modConfig, sync);
+			XMod xMod = generateXMod(modConfig, getSync());
 			saveXModFiles(modConfig, xMod);
-			sync.plusProgress(1 * modConfig.getEditedFiles().size());
+			getSync().plusProgress(1 * modConfig.getEditedFiles().size());
 			
 		} catch (XmlSaveException e) {
 			ERROR = Error.XML_SAVE_ERROR;
@@ -121,7 +121,6 @@ final public class Maker extends Main {
 	private static void saveXModFiles(ModConfig modConfig, XMod xMod)
 			throws XmlSaveException, CopyFileException {
 		// Save Exportable mod
-		print(CONSOLE_SEPARATOR);
 		print("SAVING XMOD FILES", "");
 		saveXml(xMod);
 		copyFiles(modConfig.getEditedFiles(), xMod.getEditedFilesSavePath(), false);
@@ -144,7 +143,6 @@ final public class Maker extends Main {
 			throws XModXmlAccessException, ProcessFileChangesException,
 			DetectUpkChangesException, CalculateHashException {
 		
-		print(CONSOLE_SEPARATOR);
 		print("MOD GENERATE ACTION", "");
 		
 		XMod xMod = new XMod();

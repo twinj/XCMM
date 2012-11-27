@@ -1,68 +1,83 @@
 package org.xcom.mod.gui.workers;
 
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Toolkit;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
+import javax.swing.JComponent;
 import javax.swing.ProgressMonitor;
 import javax.swing.SwingWorker;
 
 import org.xcom.mod.Main;
+import org.xcom.mod.Main.Error;
 
-public abstract class RunInBackground extends SwingWorker<Main, Void>
+public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 		implements
 			PropertyChangeListener {
 	
-	protected volatile Main main;
-	private ProgressMonitor progressMonitor;
-	private volatile SyncProgress sync = new SyncProgress();
+	protected Main main;
+	protected ProgressMonitor progressMonitor;
+	protected SyncProgress sync = new SyncProgress();
+	protected Random random = new Random();
+	private Component parent;
+	private JComponent src;
 	
-	public RunInBackground(Component parent, Main main, String workMessage) {
+	public RunInBackground(Component parent, Main main, String workMessage, JComponent src) {
 		
 		this.main = main;
-		main.setSync(sync);
+		// main.setSync(this);
+		this.parent = parent;
+		this.src = src;
 		progressMonitor = new ProgressMonitor(parent, workMessage, "", 0, 100);
-		setProgress(0);
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public T doInBackground() throws Exception {
+		
+		parent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		if (src != null) {
+			src.setEnabled(false);
+		}
+		
+		// Thread joinable = new Thread(main);
+		// joinable.start();
+		// setProgress(1);
+		main.run();
+		
+		// while (sync.getProgress() < 100 && !main.getDone() && !isCancelled()) {
+		// // Sleep for up to one second.
+		// setProgress(Math.min(sync.getProgress(), 100));
+		// Thread.sleep(random.nextInt(2000));
+		// }
+		return (T) main.getRet();
 	}
 	
 	@Override
-	public Main doInBackground() throws Exception {
+	protected void done() {
+		Toolkit.getDefaultToolkit().beep();
+		T ret = null;
 		
-		Random random = new Random();
-		Thread joinable = new Thread(main);
-		
-		joinable.start();
-		
-		while (!main.getDone() && !isCancelled()) {
-			// Sleep for up to one second.
-			if (sync.getProgress() < 100) {
-				setProgress(Math.min(sync.getProgress(), 100));
-			}
-			Thread.sleep(random.nextInt(800));
+		try {
+			ret = get();
+		} catch (InterruptedException | ExecutionException ex) {
+			ex.printStackTrace(System.err);
 		}
 		
-		if (main.getError() != Main.Error.NOTHING) {
-			Thread.sleep(random.nextInt(800));
-			setProgress(Math.min(101, 100));
-			throw new Exception();
+		Error e = main.getError();
+		
+		// setProgress(Math.min(100, 100));
+		after(e, ret);
+		parent.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		if (src != null) {
+			src.setEnabled(true);
 		}
-		while (sync.getProgress() < 100) {
-			// Sleep for up to one second.
-			sync.plusProgress(1);
-			setProgress(Math.min(sync.getProgress(), 100));
-			try {
-				Thread.sleep(random.nextInt(300));
-			} catch (InterruptedException ignore) {}
-		}
-		if (sync.getProgress() < 100) {
-			Thread.sleep(random.nextInt(800));
-			sync.plusProgress(100);
-			setProgress(Math.min(sync.getProgress(), 100));
-		}
-		return null;
 	}
+	protected abstract void after(Error e, T ret);
 	
 	public class SyncProgress {
 		
@@ -98,11 +113,12 @@ public abstract class RunInBackground extends SwingWorker<Main, Void>
 			Main.print(message);
 			
 			if (progressMonitor.isCanceled() || this.isDone()) {
-				Toolkit.getDefaultToolkit().beep();
+				// Toolkit.getDefaultToolkit().beep();
 				if (progressMonitor.isCanceled()) {
 					this.cancel(true);
-					Main.print("Task canceled.\n");
-				} else Main.print("Task completed.\n");
+				} else {
+					progressMonitor.close();
+				}
 			}
 		}
 	}

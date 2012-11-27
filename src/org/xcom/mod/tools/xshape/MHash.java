@@ -163,6 +163,26 @@ final public class MHash {
 	}
 	
 	/**
+	 * Returns a hash plain string as a hex string with spaces.
+	 * 
+	 * @param hash
+	 * 
+	 * @return String
+	 */
+	public static String toPrintString(String hash) {
+		StringBuilder result = new StringBuilder(HASH_OUTPUT*3);
+		int i = 1;
+		for (char c : hash.toCharArray()) {			
+			result.append(c);
+			if (i % 2 == 0) {
+				result.append(" ");
+			}
+			i++;
+		}
+		return result.toString().trim();
+	}
+	
+	/**
 	 * 
 	 * @param s
 	 * @return

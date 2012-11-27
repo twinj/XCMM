@@ -1,5 +1,6 @@
 package org.xcom.mod.gui.workers;
 
+import java.awt.Cursor;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 	
 	@Override
 	protected Void doInBackground() {
+		XCMGUI.getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		if (src != null) {
 			src.setEnabled(false);
 		}
@@ -52,11 +54,16 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 	@Override
 	protected void done() {
 		try {
+			XCMGUI.getFrame().setCursor(
+					Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			if (src != null) {
+				src.setEnabled(true);
+			}
 			get();
 		} catch (InterruptedException | ExecutionException ex) {
 			ex.printStackTrace(System.err);
 			decompressionFailed();
-			return;			
+			return;
 		}
 		for (Path p : decomFiles) {
 			try {
@@ -67,9 +74,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 			}
 		}
 		decompressionComplete();
-		if (src != null) {
-			src.setEnabled(true);
-		}
+		
 	}
 	protected void decompressionFailed() {
 		JOptionPane.showMessageDialog(XCMGUI.getFrame(),

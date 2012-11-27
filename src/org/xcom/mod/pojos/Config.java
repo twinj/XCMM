@@ -17,7 +17,7 @@ import org.xcom.mod.gui.XCMGUI;
  */
 @XmlRootElement(name = "Config")
 @XmlType(propOrder = {
-        "author", "xcomPath", "unpackedPath"
+        "author", "xcomPath", "unpackedPath", "compressorPath", "extractorPath"
 })
 public class Config implements Serializable, ModXml {
 
@@ -26,18 +26,25 @@ public class Config implements Serializable, ModXml {
     private final static String AUTHOR = "Author";
     private final static String XCOM_PATH = "XCom";
     private final static String UNPACKED_PATH = "Unpacked";
-    public final static String PATH = "config\\config.xml";
+    private static final String EXTRACTOR_PATH = "Extractor";
+		private static final String COMPRESSOR_PATH = "Compressor";
 
     private final static String DEFAULT_XCOM_PATH = "C:\\Program Files (x86)\\Steam\\SteamApps\\common\\XCom-Enemy-Unknown";
     private final static String DEFAULT_UNPACKED_PATH = System.getProperty("user.dir") + "\\unpacked";
     private final static String DEFAULT_COOKED_PATH = "C:\\Program Files (x86)\\Steam\\SteamApps\\common\\XCom-Enemy-Unknown\\XComGame\\CookedPCConsole";
+    private final static String DEFAULT_COMPRESSOR_PATH = System.getProperty("user.dir") + "\\tools\\decompress.exe";
+    private final static String DEFAULT_EXTRACTOR_PATH = System.getProperty("user.dir") + "\\tools\\extract.exe";
     //private final static String DEFAULT_COOKED_BACKUP = "";
-
+		
     private String author = "unknown";
     private String xcomPath = DEFAULT_XCOM_PATH;
     private String unpackedPath = DEFAULT_UNPACKED_PATH;
+    private String compressorPath = DEFAULT_COMPRESSOR_PATH;
+    private String extractorPath = DEFAULT_EXTRACTOR_PATH;
 
-    // Clean constructor required for serialisation
+    public final static String PATH = "config\\config.xml";
+
+		// Clean constructor required for serialisation
     public Config() {
 
     }
@@ -74,6 +81,25 @@ public class Config implements Serializable, ModXml {
 
         this.unpackedPath = unpackedPath;
     }
+    
+    @XmlElement(name = COMPRESSOR_PATH)
+    public String getCompressorPath() {
+			return this.compressorPath;
+		}
+
+		public void setCompressorPath(String compressorPath) {
+			this.compressorPath = compressorPath;
+		}
+
+    @XmlElement(name = EXTRACTOR_PATH)
+		public String getExtractorPath() {
+			return this.extractorPath;
+		}
+
+		public void setExtractorPath(String extractorPath) {
+			this.extractorPath = extractorPath;
+		}
+
 
     @XmlTransient
     public Path getCookedPath() {

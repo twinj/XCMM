@@ -33,6 +33,7 @@ import org.xcom.mod.exceptions.XmlPrintException;
 import org.xcom.mod.exceptions.XmlSaveException;
 import org.xcom.mod.gui.CopyFileException;
 import org.xcom.mod.gui.streams.Stream;
+import org.xcom.mod.gui.workers.RunInBackground;
 import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
 import org.xcom.mod.pojos.Config;
 import org.xcom.mod.pojos.ModXml;
@@ -79,13 +80,10 @@ public abstract class Main implements Runnable {
 		
 		private final String msg;
 		
-		Error(String msg) {
-			
+		Error(String msg) {		
 			this.msg = String.format(("Error [%s] " + msg), this.ordinal());
-		}
-		
-		public String getMsg() {
-			
+		}	
+		public String getMsg() {			
 			return msg;
 		}
 	}
@@ -93,11 +91,11 @@ public abstract class Main implements Runnable {
 	protected Error ERROR;
 	
 	public final static String CONSOLE_SEPARATOR = "**************************"
-			+ "*******************************" + "*******************************\n";
+			+ "*******************************" + "********************";
 	public final static String SYSTEM_NAME = "XCMM";
-	public final static String MAIN_DELEGATE = SYSTEM_NAME + " MAIN: ";
-	public final static String MAKE_DELEGATE = SYSTEM_NAME + " MAKE: ";
-	public final static String INSTALL_DELEGATE = SYSTEM_NAME + " INSTALL: ";
+	public final static String MAIN_DELEGATE = "[main] ";
+	public final static String MAKE_DELEGATE = "[make] ";
+	public final static String INSTALL_DELEGATE = "[install] ";
 	
 	public final static String INVOKE_GUI = "-g";
 	public final static String INVOKE_MAKE = "-m";
@@ -109,7 +107,7 @@ public abstract class Main implements Runnable {
 	protected final static String RELATIVE_TOC_PATH = "\\XComGame\\PCConsoleTOC.txt";
 	private final static String UNPACKED_HEADER = "C1832A9E4D033B";
 	
-	protected final static int NUM_THREADS = (Runtime.getRuntime()
+	protected final static int NUM_CPU = (Runtime.getRuntime()
 			.availableProcessors());
 	
 	protected static Config config;
@@ -122,15 +120,17 @@ public abstract class Main implements Runnable {
 	public static Stream MAKE = Stream.getStream(MAKE_DELEGATE);
 	public static Stream INSTALL = Stream.getStream(INSTALL_DELEGATE);
 	
-	protected final static String userDir = System.getProperty("user.dir");
+	protected final static String USER_DIR = System.getProperty("user.dir");
 	
-	protected volatile SyncProgress sync;
-	protected volatile Boolean DONE;
-	protected volatile static Boolean IN_GUI = false;
+	@SuppressWarnings("rawtypes")
+	protected RunInBackground sync;
+	protected Boolean DONE;
+	protected static Boolean IN_GUI = false;
+	protected Object ret = null;
 	
 	protected static java.util.ArrayList<Path> editedUpks = new java.util.ArrayList<Path>();
 	
-	public Main() {	
+	public Main() {
 		DONE = false;
 		ERROR = Error.NOTHING;
 	}
@@ -157,7 +157,7 @@ public abstract class Main implements Runnable {
 		return Files.exists(Paths.get(path, "Core", "Component",
 				"TemplateName.NameProperty"));
 	}
-	
+
 	/**
 	 * Appends complex msg to console. Add new line.
 	 * 
@@ -302,14 +302,14 @@ public abstract class Main implements Runnable {
 	public static void printXml(java.io.PrintStream os, ModXml xml, String msg)
 			throws XmlPrintException {
 		
-		print(os, CONSOLE_SEPARATOR + xml.getPrintName()
+		print(os, CONSOLE_SEPARATOR + "\n" + xml.getPrintName()
 				+ (msg != "" ? " " + msg : " XML\n"));
 		try {
 			m.marshal(xml, os);
 		} catch (JAXBException e) {
 			throw new XmlPrintException("JAXBException,marshall");
 		} finally {
-			print(CONSOLE_SEPARATOR);
+			print(CONSOLE_SEPARATOR + "\n");
 		}
 	}
 	
@@ -353,7 +353,7 @@ public abstract class Main implements Runnable {
 	}
 	
 	/**
-	 * Save a list of files to directory.
+	 * Save either modified or original mod resources to the mod directory.
 	 * 
 	 * @param files
 	 * @param path
@@ -363,19 +363,29 @@ public abstract class Main implements Runnable {
 			Boolean replaceExisting) throws CopyFileException {
 		
 		for (File f : files) {
+			
+			Path saveDir = Paths.get(path.toString(), getUpkFilename(f.toPath()));
+			
+			if (Files.notExists(saveDir)) {
+				try {
+					Files.createDirectory(saveDir);
+				} catch (IOException ex) {
+					throw new CopyFileException();
+				}
+			}
 			copyFile(f.toPath(), Paths.get(path.toString(), f.getName()),
 					replaceExisting);
 		}
 	}
 	
 	/**
-	 * Gets UPK filename
+	 * Gets Upk filename
 	 * 
 	 * @param filepath
 	 * 
 	 * @return String
 	 */
-	protected static String getUPKFilename(Path resource) {
+	protected static String getUpkFilename(Path resource) {
 		
 		int unpackedECount = Paths.get(config.getUnpackedPath()).getNameCount();
 		String ret = resource.subpath(unpackedECount, unpackedECount + 1)
@@ -422,10 +432,10 @@ public abstract class Main implements Runnable {
 		final String fileName = p.getFileName().toString();
 		
 		final File log = new File("log");
+		final String tool = Paths.get(config.getCompressorPath()).toAbsolutePath().toString();
 		
 		// The only way this works is with a SINGLE string
-		ProcessBuilder pb = new ProcessBuilder("\"" + userDir
-				+ "\\tools\\decompress.exe\" -lzo -out=\"" + unpacked + "\" \""
+		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked + "\" \""
 				+ fileToDecompress + "\"");
 		
 		Process proc;
@@ -461,11 +471,12 @@ public abstract class Main implements Runnable {
 		final String fileToUnpack = p.toAbsolutePath().toString();
 		final String fileName = p.getFileName().toString();
 		
+		final String tool = Paths.get(config.getExtractorPath()).toAbsolutePath().toString();
+
 		final File log = new File("log");
 		
 		// The only way this works is with a SINGLE string
-		ProcessBuilder pb = new ProcessBuilder("\"" + userDir
-				+ "\\tools\\extract.exe\" -lzo -out=\"" + unpacked + "\" \""
+		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked + "\" \""
 				+ fileToUnpack + "\"");
 		
 		Process proc;
@@ -514,8 +525,7 @@ public abstract class Main implements Runnable {
 				final String cooked = XShape.getConfig().getCookedPath().toString();
 				
 				Files.move(original, originalMoveTo);
-				print("MOVING & RENAMING ORIGINAL [" + original, "] TO ["
-						+ originalMoveTo, "]");
+				print("MOVING [" + original, "] TO [" + originalMoveTo, "]");
 				
 				Files.copy(uncomp, original);
 				print("MOVING [" + uncomp, "] TO [" + original, "]");
@@ -567,7 +577,7 @@ public abstract class Main implements Runnable {
 		} catch (IOException ex) {
 			throw new DownloadFailedException();
 		}
-		print("DOWNLOADED FROM [" + down.toString(), "]");
+		print("DOWNLOADED [" + down.toString(), "]");
 		return temp;
 	}
 	
@@ -623,13 +633,13 @@ public abstract class Main implements Runnable {
 				ex.printStackTrace(System.err);
 				throw new ZipException();
 			}
-			print("UNZIPPED FROM [" + zipDir.toString(), "]");
+			print("UNZIPPED [" + zipDir.toString(), "]");
 			
 		}
 	}
 	
 	/**
-	 * OPens the desktop browser to url string
+	 * Opens the desktop browser to url string
 	 * 
 	 * @param url
 	 */
@@ -683,14 +693,15 @@ public abstract class Main implements Runnable {
 		print(MAIN, strings);
 	}
 	
+	@SuppressWarnings("rawtypes")
 	public SyncProgress getSync() {
 		
-		return sync;
+		return (sync == null ? null : sync.getSync());
 	}
 	
-	public void setSync(SyncProgress sync) {
+	public <T> void setSync(RunInBackground<T> runInBackground) {
 		
-		this.sync = sync;
+		this.sync = runInBackground;
 	}
 	
 	public Boolean getDone() {
@@ -701,6 +712,10 @@ public abstract class Main implements Runnable {
 	public void setDone(Boolean done) {
 		
 		this.DONE = done;
+	}
+	
+	public Object getRet() {
+		return this.ret;
 	}
 	
 	public Error getError() {

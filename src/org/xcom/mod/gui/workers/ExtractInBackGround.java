@@ -1,5 +1,6 @@
 package org.xcom.mod.gui.workers;
 
+import java.awt.Cursor;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,8 @@ public class ExtractInBackGround extends SwingWorker<Void, Void> {
 	
 	@Override
 	protected Void doInBackground() {
-		
+		XCMGUI.getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
 		if (src != null) {
 			src.setEnabled(false);
 		}
@@ -52,16 +54,20 @@ public class ExtractInBackGround extends SwingWorker<Void, Void> {
 	@Override
 	protected void done() {
 		try {
+			XCMGUI.getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			if (src != null) {
+				src.setEnabled(true);
+			}
+			
 			get();
 		} catch (InterruptedException | ExecutionException ex) {
 			ex.printStackTrace(System.err);
 			extractionFailed();
 			return;			
 		}	
-		if (src != null) {
-			src.setEnabled(true);
-		}
+		
 		extractionComplete();
+		
 	}
 	protected void extractionFailed() {
 		JOptionPane.showMessageDialog(XCMGUI.getFrame(),

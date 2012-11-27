@@ -1,6 +1,7 @@
 package org.xcom.mod.gui.dialogues;
 
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.HeadlessException;
 import java.awt.event.ActionEvent;
@@ -10,6 +11,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -30,6 +32,7 @@ import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.TitledBorder;
@@ -45,88 +48,54 @@ import com.lipstikLF.LipstikLookAndFeel;
 import com.lipstikLF.theme.DefaultTheme;
 import com.lipstikLF.theme.KlearlooksTheme;
 import com.lipstikLF.theme.LightGrayTheme;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 public class SettingsDialog extends JDialog {
 	
 	private static final long serialVersionUID = 1L;
-	private JTextField textField;
+	private JTextField textFieldName;
 	private JTextField textFieldInstall;
 	private JTextField textFieldUnpacked;
 	
 	private final ButtonGroup themeButtonGroup = new ButtonGroup();
-	private JTextField textField_1;
-	private JTextField textField_2;
+	private JTextField textFieldDecompressor;
+	private JTextField textFieldExtractor;
 	
 	private SettingsDialog THIS = this;
 	
 	public SettingsDialog(final Config config) {
+		addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentShown(ComponentEvent e) {
+				textFieldName.setText(config.getAuthor());
+				textFieldInstall.setText(config.getXcomPath());
+				textFieldUnpacked.setText(config.getUnpackedPath());
+				textFieldDecompressor.setText(config.getCompressorPath());
+				textFieldExtractor.setText(config.getExtractorPath());	
+				setLocationRelativeTo(XCMGUI.getFrame());
+			}
+		});
 		setMinimumSize(new Dimension(275, 275));
-		setResizable(false);
+		setResizable(false);		
 		
 		initUI();
+
+	}
+	
+	public final void initUI() {
 		
-		textField.setText(config.getAuthor());
-		textFieldInstall.setText(config.getXcomPath());
-		textFieldUnpacked.setText(config.getUnpackedPath());
+		getContentPane().setLayout(
+				new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 		
-		JPanel toolsTab = new JPanel();
-		getContentPane().add(toolsTab);
-		toolsTab.setRequestFocusEnabled(false);
-		toolsTab.setVisible(false);
-		toolsTab.setEnabled(false);
-		toolsTab.setLayout(null);
+		setModalityType(ModalityType.APPLICATION_MODAL);
 		
-		Box horizontalBox = Box.createHorizontalBox();
-		horizontalBox.setBounds(28, 5, 207, 23);
-		horizontalBox.setMinimumSize(new Dimension(235, 0));
-		horizontalBox.setAlignmentX(0.0f);
-		toolsTab.add(horizontalBox);
-		
-		JLabel lblUnrealPackageDecompresor = new JLabel(
-				"Unreal Package Decompresor");
-		lblUnrealPackageDecompresor.setHorizontalAlignment(SwingConstants.LEFT);
-		horizontalBox.add(lblUnrealPackageDecompresor);
-		
-		Component horizontalGlue_2 = Box.createHorizontalGlue();
-		horizontalBox.add(horizontalGlue_2);
-		
-		JButton button = new JButton("Browse");
-		button.setAlignmentX(1.0f);
-		horizontalBox.add(button);
-		
-		textField_1 = new JTextField();
-		textField_1.setBounds(28, 33, 207, 20);
-		textField_1.setText((String) null);
-		textField_1.setColumns(10);
-		toolsTab.add(textField_1);
-		
-		Box horizontalBox_1 = Box.createHorizontalBox();
-		horizontalBox_1.setMinimumSize(new Dimension(235, 0));
-		horizontalBox_1.setAlignmentX(0.0f);
-		horizontalBox_1.setBounds(28, 60, 207, 23);
-		toolsTab.add(horizontalBox_1);
-		
-		JLabel lblUnrealPackageExtractor = new JLabel("Unreal Package Extractor");
-		lblUnrealPackageExtractor.setHorizontalAlignment(SwingConstants.LEFT);
-		horizontalBox_1.add(lblUnrealPackageExtractor);
-		
-		Component horizontalGlue_3 = Box.createHorizontalGlue();
-		horizontalBox_1.add(horizontalGlue_3);
-		
-		JButton button_1 = new JButton("Browse");
-		button_1.setAlignmentX(1.0f);
-		horizontalBox_1.add(button_1);
-		
-		textField_2 = new JTextField();
-		textField_2.setText((String) null);
-		textField_2.setColumns(10);
-		textField_2.setBounds(28, 88, 207, 20);
-		toolsTab.add(textField_2);
+		setTitle("XCMM Config Settings");
 		
 		JPanel themeTab = new JPanel();
-		themeTab.setEnabled(false);
 		themeTab.setVisible(false);
 		getContentPane().add(themeTab);
+		themeTab.setEnabled(false);
 		themeTab.setBorder(new TitledBorder(null, "", TitledBorder.LEADING,
 				TitledBorder.TOP, null, null));
 		
@@ -142,8 +111,7 @@ public class SettingsDialog extends JDialog {
 				}
 				
 				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				XCMGUI.getFrame().repaint();
-				THIS.repaint();
+				SwingUtilities.updateComponentTreeUI(THIS);			
 				XCMGUI.getFrame().pack();
 			}
 			
@@ -164,8 +132,8 @@ public class SettingsDialog extends JDialog {
 				LipstikLookAndFeel.setMyCurrentTheme(new DefaultTheme());
 				
 				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				XCMGUI.getFrame().repaint();
-				THIS.repaint();
+				SwingUtilities.updateComponentTreeUI(THIS);
+				
 				XCMGUI.getFrame().pack();
 			}
 		});
@@ -183,10 +151,10 @@ public class SettingsDialog extends JDialog {
 				}
 				
 				LipstikLookAndFeel.setMyCurrentTheme(new LightGrayTheme());
+				
 				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				XCMGUI.getFrame().repaint();
-				THIS.repaint();
+				SwingUtilities.updateComponentTreeUI(THIS);
+				
 				XCMGUI.getFrame().pack();
 			}
 		});
@@ -205,9 +173,10 @@ public class SettingsDialog extends JDialog {
 					ex.printStackTrace(System.err);
 				}
 				LipstikLookAndFeel.setMyCurrentTheme(new KlearlooksTheme());
+				
 				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				XCMGUI.getFrame().repaint();
-				THIS.repaint();
+				SwingUtilities.updateComponentTreeUI(THIS);
+				
 				XCMGUI.getFrame().pack();
 			}
 		});
@@ -267,18 +236,7 @@ public class SettingsDialog extends JDialog {
 						.addComponent(rdbtnNewRadioButton).addGap(46)
 						.addComponent(btnNewButton).addGap(21)));
 		themeTab.setLayout(gl_themeTab);
-	}
-	
-	public final void initUI() {
-		
-		getContentPane().setLayout(
-				new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
-		
-		setModalityType(ModalityType.APPLICATION_MODAL);
-		
-		setTitle("XCMM Config Settings");
-		setLocationRelativeTo(XCMGUI.getFrame());
-		
+
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		getContentPane().add(tabbedPane);
 		
@@ -312,144 +270,13 @@ public class SettingsDialog extends JDialog {
 		Component horizontalStrut = Box.createHorizontalStrut(20);
 		getAuthorHBox.add(horizontalStrut);
 		
-		textField = new JTextField();
-		lblYourAuthorName.setLabelFor(textField);
-		getAuthorHBox.add(textField);
-		textField.setColumns(10);
+		textFieldName = new JTextField();
+		lblYourAuthorName.setLabelFor(textFieldName);
+		getAuthorHBox.add(textFieldName);
+		textFieldName.setColumns(10);
 		
 		JButton btnSaveSettings = new JButton("Save");
-		btnSaveSettings.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JComponent src = (JComponent) e.getSource();
-				
-				final Config config = XCMGUI.getConfig();
-				
-				final String name = textField.getText();
-				final String unpackedPath = textFieldUnpacked.getText();
-				final String xComPath = textFieldInstall.getText();
-				
-				final Path cookedCore = Paths.get(config.getCookedPath().toString(),
-						"Core.upk");
-				
-				Boolean isOk = true;
-				
-				String msg = "ERROR";
-				String title = "Incorrect setting.";
-				int op = JOptionPane.ERROR_MESSAGE;
-				
-				if (name.isEmpty() || unpackedPath.isEmpty() || xComPath.isEmpty()) {
-					msg = "Setting field cannot be empty.";
-					
-				} else if (!XCMGUI.isXComPathValid(xComPath)) {
-					isOk = false;
-					msg = "The system cannot verify your XCOM installtion.";
-					
-				} else if (name.equals("unknown")) {
-					isOk = false;
-					msg = "Name field cannot be 'unknown'.";
-					
-				} else if (!Main.isUnPackedPathValid(unpackedPath)) {
-					
-					if (Files.isDirectory(Paths.get(unpackedPath))) {
-						isOk = false;
-						try {
-							if (!Main.isDecompressed(cookedCore)) {
-								int n = JOptionPane.showConfirmDialog(
-										XCMGUI.getFrame(),
-										"Would you like to unpack the core upk file here to verify the current path?",
-										"Unpack Core.upk", JOptionPane.YES_NO_OPTION);
-								
-								Path decompress = Paths.get("tools\\decompress.exe");
-								Path extract = Paths.get("tools\\extract.exe");
-								
-								switch (n) {
-									case JOptionPane.YES_OPTION :
-										if (Files.notExists(decompress) || Files.notExists(extract)) {
-											getToolsToPerformInitialVerification(unpackedPath,
-													cookedCore, src);
-										} else {
-											
-											new DecompressInBackGround(cookedCore).execute();
-											new ExtractInBackGround(Paths.get(unpackedPath,
-													"Core.upk")).execute();
-										}
-										break;
-								}
-								msg = null;
-								isOk = true;
-							} else {
-								msg = "Your Core.upk is already decompressed. Unpacking now.";
-								
-								new ExtractInBackGround(Paths.get(unpackedPath, "Core.upk"))
-										.execute();
-							}
-						} catch (HeadlessException | IOException ignore) {
-							ignore.printStackTrace(System.err);
-						}
-						
-					} else {
-						isOk = false;
-						msg = "The system cannot verify your unpacked resources. Please choose a valid path.";
-					}
-					
-					if (!isOk) {
-						msg = "The system cannot verify your unpacked resources.";
-					}
-				} else if (isOk) { // Is Ok
-				
-					msg = "The settings have been updated.";
-					title = "Settings saved.";
-					op = JOptionPane.PLAIN_MESSAGE;
-					
-					config.setAuthor(name);
-					config.setUnpackedPath(unpackedPath);
-					config.setXcomPath(xComPath);
-					
-					try {
-						Main.saveXml(config);
-					} catch (XmlSaveException ex) {
-						msg = "There was an error saving the settings file. Try again. Check for OS permissions.";
-						title = "Settings not saved.";
-						ex.printStackTrace(System.err);
-					}
-					dispose();
-				}
-				if (msg != null) {
-					JOptionPane.showMessageDialog(getContentPane(), msg, title, op);
-				}
-			}
-			
-			/**
-			 * 
-			 * @param unpackedPath
-			 * @param cookedCore
-			 * @param src
-			 * @throws HeadlessException
-			 * @throws MalformedURLException
-			 */
-			public void getToolsToPerformInitialVerification(
-					final String unpackedPath, final Path cookedCore, JComponent src)
-					throws HeadlessException, MalformedURLException {
-				
-				final Path decompress = Paths.get("tools\\decompress.exe");
-				final Path extract = Paths.get("tools\\extract.exe");
-				final Path upkToExtract = Paths.get(unpackedPath, "Core.upk");
-				
-				int n1 = JOptionPane.showConfirmDialog(
-						XCMGUI.getFrame(),
-						"To get started you need to download and unzip Gildor's tools.\nAfter the download the system will try the tools.",
-						"Download Gildor's tools?", JOptionPane.YES_NO_OPTION);
-				
-				switch (n1) {
-					case JOptionPane.YES_OPTION :
-						Main.openDesktopBrowser("http://www.gildor.org/");
-						XCMGUI.decompressWithToolCheck(cookedCore, decompress);
-						XCMGUI.extractWithToolCheck(upkToExtract, extract, null);
-						break;
-				} // end second switch
-			} // end first switch
-			
-		});
+		btnSaveSettings.addActionListener(new SaveAction());
 		btnSaveSettings.setBounds(10, 183, 89, 23);
 		generalTab.add(btnSaveSettings);
 		
@@ -505,6 +332,103 @@ public class SettingsDialog extends JDialog {
 		JSeparator separator_1 = new JSeparator();
 		separator_1.setBounds(10, 111, 246, 20);
 		generalTab.add(separator_1);
+		
+		JPanel toolsTab = new JPanel();
+		tabbedPane.addTab("Gildor's Tools", null, toolsTab, null);
+		toolsTab.setRequestFocusEnabled(false);
+		toolsTab.setVisible(false);
+		toolsTab.setEnabled(false);
+		toolsTab.setLayout(null);
+		
+		JSeparator separator_3 = new JSeparator();
+		separator_3.setBounds(10, 42, 246, 10);
+		toolsTab.add(separator_3);
+		
+		Box horizontalBox = Box.createHorizontalBox();
+		horizontalBox.setBounds(10, 55, 246, 23);
+		horizontalBox.setMinimumSize(new Dimension(235, 0));
+		horizontalBox.setAlignmentX(0.0f);
+		toolsTab.add(horizontalBox);
+		
+		JLabel lblUnrealPackageDecompresor = new JLabel(
+				"Unreal Package Decompresor:");
+		lblUnrealPackageDecompresor.setHorizontalAlignment(SwingConstants.LEFT);
+		horizontalBox.add(lblUnrealPackageDecompresor);
+		
+		Component horizontalGlue_2 = Box.createHorizontalGlue();
+		horizontalBox.add(horizontalGlue_2);
+		
+		JButton button = new JButton("Browse");
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = new JFileChooser();
+				
+				fc.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")));
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				
+				int returnVal = fc.showOpenDialog(THIS);
+				
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					java.io.File file = fc.getSelectedFile();
+					textFieldDecompressor.setText(file.getAbsolutePath());
+				}
+			}
+		});
+		button.setAlignmentX(1.0f);
+		horizontalBox.add(button);
+		
+		textFieldDecompressor = new JTextField();
+		textFieldDecompressor.setBounds(10, 80, 246, 20);
+		textFieldDecompressor.setText((String) null);
+		textFieldDecompressor.setColumns(10);
+		toolsTab.add(textFieldDecompressor);
+		
+		JSeparator separator_2 = new JSeparator();
+		separator_2.setBounds(10, 111, 246, 10);
+		toolsTab.add(separator_2);
+		
+		Box horizontalBox_1 = Box.createHorizontalBox();
+		horizontalBox_1.setMinimumSize(new Dimension(235, 0));
+		horizontalBox_1.setAlignmentX(0.0f);
+		horizontalBox_1.setBounds(10, 124, 246, 23);
+		toolsTab.add(horizontalBox_1);
+		
+		JLabel lblUnrealPackageExtractor = new JLabel("Unreal Package Extractor:");
+		lblUnrealPackageExtractor.setHorizontalAlignment(SwingConstants.LEFT);
+		horizontalBox_1.add(lblUnrealPackageExtractor);
+		
+		Component horizontalGlue_3 = Box.createHorizontalGlue();
+		horizontalBox_1.add(horizontalGlue_3);
+		
+		JButton button_1 = new JButton("Browse");
+		button_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = new JFileChooser();
+				
+				fc.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")));
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				
+				int returnVal = fc.showOpenDialog(THIS);
+				
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					java.io.File file = fc.getSelectedFile();
+					textFieldExtractor.setText(file.getAbsolutePath());
+				}
+			}
+		});
+		button_1.setAlignmentX(1.0f);
+		horizontalBox_1.add(button_1);
+		
+		textFieldExtractor = new JTextField();
+		textFieldExtractor.setText((String) null);
+		textFieldExtractor.setColumns(10);
+		textFieldExtractor.setBounds(10, 152, 246, 20);
+		toolsTab.add(textFieldExtractor);
+		
+		JButton button_2 = new JButton("Save");
+		button_2.addActionListener(new SaveAction());
+		button_2.setBounds(10, 183, 89, 23);
+		toolsTab.add(button_2);
 		browseButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser fc = new JFileChooser();
@@ -512,7 +436,7 @@ public class SettingsDialog extends JDialog {
 				fc.setCurrentDirectory(new java.io.File(textFieldUnpacked.getText()));
 				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 				
-				int returnVal = fc.showOpenDialog(XCMGUI.getFrame());
+				int returnVal = fc.showOpenDialog(THIS);
 				
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					java.io.File file = fc.getSelectedFile();
@@ -527,7 +451,7 @@ public class SettingsDialog extends JDialog {
 				fc.setCurrentDirectory(new java.io.File(textFieldInstall.getText()));
 				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 				
-				int returnVal = fc.showOpenDialog(XCMGUI.getFrame());
+				int returnVal = fc.showOpenDialog(THIS);
 				
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					java.io.File file = fc.getSelectedFile();
@@ -535,5 +459,194 @@ public class SettingsDialog extends JDialog {
 				}
 			}
 		});
+	}
+	
+	/**
+	 * Save action
+	 * 
+	 * @author Daniel Kemp
+	 * 
+	 */
+	class SaveAction implements ActionListener {
+		public void actionPerformed(ActionEvent e) {
+			JComponent src = (JComponent) e.getSource();
+			
+			final Config config = XCMGUI.getConfig();
+			
+			final String name = textFieldName.getText();
+			final String unpackedPath = textFieldUnpacked.getText();
+			final String xComPath = textFieldInstall.getText();
+			final String compressorPath = textFieldDecompressor.getText();
+			final String extractorPath = textFieldExtractor.getText();
+			
+			final Path cookedCore = Paths.get(config.getCookedPath().toString(),
+					"Core.upk");
+			
+			Boolean isOk = true;
+			
+			String msg = "ERROR";
+			String title = "Incorrect setting.";
+			int op = JOptionPane.ERROR_MESSAGE;
+			
+			if (Files.exists(Paths.get(compressorPath))) {
+				config.setCompressorPath(compressorPath);
+			}
+			if (Files.exists(Paths.get(extractorPath))) {
+				config.setExtractorPath(extractorPath);
+			}
+			
+			if (name.isEmpty() || unpackedPath.isEmpty() || xComPath.isEmpty()) {
+				msg = "Setting field cannot be empty.";
+				
+			} else if (!XCMGUI.isXComPathValid(xComPath)) {
+				isOk = false;
+				msg = "The system cannot verify your XCOM installtion.";
+				
+			} else if (name.equals("unknown")) {
+				isOk = false;
+				msg = "Name field cannot be 'unknown'.";
+				
+			} else if (Files.notExists(Paths.get(compressorPath))
+					|| Files.notExists(Paths.get(extractorPath))) {
+				
+				boolean yes = false;
+				
+				try {
+					yes = getToolsToPerformInitialVerification(unpackedPath, cookedCore,
+							src);
+				} catch (HeadlessException | MalformedURLException ignore) {
+					ignore.printStackTrace(System.err);
+				}
+				if (!yes) {
+					msg = "You need to select a valid path for Gildor's tools.";
+				} else {
+					msg = null;
+				}				
+			} else if (!Main.isUnPackedPathValid(unpackedPath)) {
+				
+				if (Files.isDirectory(Paths.get(unpackedPath))) {
+					isOk = false;
+					try {
+						if (!Main.isDecompressed(cookedCore)) {
+							int n = JOptionPane
+									.showConfirmDialog(
+											THIS,
+											"Would you like to unpack the core upk file here to verify the current path?",
+											"Unpack Core.upk", JOptionPane.YES_NO_OPTION);
+							
+							switch (n) {
+								case JOptionPane.YES_OPTION :
+									DecompressInBackGround dib = new DecompressInBackGround(cookedCore);
+									
+									dib.execute();
+									try {
+										dib.get();
+									} catch (InterruptedException | ExecutionException ignore) {
+										ignore.printStackTrace(); // already handled
+									}
+									new ExtractInBackGround(Paths.get(unpackedPath, "Core.upk"))
+											.execute();
+									
+									break;
+							}
+							msg = null;
+							isOk = true;
+						} else {
+							msg = "Your Core.upk is already decompressed. Unpacking now.";
+							
+							new ExtractInBackGround(Paths.get(unpackedPath, "Core.upk"))
+									.execute();
+						}
+					} catch (HeadlessException | IOException ignore) {
+						ignore.printStackTrace(System.err);
+					}
+					
+				} else {
+					isOk = false;
+					msg = "The system cannot verify your unpacked resources. Please choose a valid path.";
+				}
+				
+				if (!isOk) {
+					msg = "The system cannot verify your unpacked resources.";
+				}
+			} else if (isOk) { // Is Ok
+			
+				msg = "The settings have been updated.";
+				title = "Settings saved.";
+				op = JOptionPane.PLAIN_MESSAGE;
+				
+				config.setAuthor(name);
+				config.setUnpackedPath(unpackedPath);
+				config.setXcomPath(xComPath);
+				
+				try {
+					Main.saveXml(config);
+				} catch (XmlSaveException ex) {
+					msg = "There was an error saving the settings file. Try again. Check for OS permissions.";
+					title = "Settings not saved.";
+					ex.printStackTrace(System.err);
+				}
+				dispose();
+			}
+			if (msg != null) {
+				JOptionPane.showMessageDialog(getContentPane(), msg, title, op);
+			}
+		}
+		/**
+		 * 
+		 * @param unpackedPath
+		 * @param cookedCore
+		 * @param src
+		 * @throws HeadlessException
+		 * @throws MalformedURLException
+		 */
+		public boolean getToolsToPerformInitialVerification(
+				final String unpackedPath, final Path cookedCore, final JComponent src)
+				throws HeadlessException, MalformedURLException {
+			
+			final Path decompress = Paths.get("tools\\decompress.exe");
+			final Path extract = Paths.get("tools\\extract.exe");
+			final Path upkToExtract = Paths.get(unpackedPath, "Core.upk");
+			
+			int n1 = JOptionPane
+					.showConfirmDialog(
+							THIS,
+							"To get started you need to download Gildor's tools or select a working path.\nWould you like to download?",
+							"Download Gildor's tools?", JOptionPane.YES_NO_OPTION);
+			
+			switch (n1) {
+				case JOptionPane.YES_OPTION :
+					new SwingWorker<Void, Void>() {
+						@Override
+						protected Void doInBackground() throws Exception {
+							if (src != null) {
+								src.setEnabled(false);
+							}
+							THIS.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+							Main.openDesktopBrowser("http://www.gildor.org/");
+							XCMGUI.decompressWithToolCheck(cookedCore, decompress, true);
+							XCMGUI.extractWithToolCheck(upkToExtract, extract, null, true);
+							
+							return null;
+						}
+						@Override
+						protected void done() {
+							try {
+								get();
+							} catch (InterruptedException | ExecutionException ex) {
+								ex.printStackTrace();
+							}
+							THIS.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+							if (src != null) {
+								src.setEnabled(true);
+							}
+						}
+					}.execute();
+					break;
+				default :
+					return false;
+			}
+			return true;
+		}
 	}
 }

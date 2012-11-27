@@ -50,26 +50,26 @@ public class XShape extends Main {
 	private Path toPatch;
 	
 	public XShape(Path toPatch, List<Path> paths) {
-        
-        super();
-        this.toPatch = toPatch;
-        // This list requires duplicates before this however now they are 
-        // redundant and need to be trimmed for clean patching
-        
-        List<Path> cleanPaths = new Vector<Path>();
-        
-        for (Path p : paths) {
-        	if (! cleanPaths.contains(p)) {
-        		cleanPaths.add(p);
-        	}
-        }
-        this.paths = cleanPaths;
-    }
+		
+		super();
+		this.toPatch = toPatch;
+		// This list requires duplicates before this however now they are
+		// redundant and need to be trimmed for clean patching
+		
+		List<Path> cleanPaths = new Vector<Path>();
+		
+		for (Path p : paths) {
+			if (!cleanPaths.contains(p)) {
+				cleanPaths.add(p);
+			}
+		}
+		this.paths = cleanPaths;
+	}
 	@Override
 	public void run() {
 		
 		printActionMessage("XSHAPE");
-		sync.plusProgress(1);
+		getSync().plusProgress(1);
 		
 		try {
 			List<Path> uncompressedFiles = new ArrayList<>();
@@ -87,7 +87,7 @@ public class XShape extends Main {
 			
 			if (work == null || work.isDone()) {
 				startPatching(toPatch, new Vector<MHash>(MHash.calculateHashes(paths)),
-						sync);
+						getSync());
 			} else {
 				throw new UpkFileNotDecompressedException();
 			}
@@ -124,7 +124,7 @@ public class XShape extends Main {
 			}
 		}
 		startPatching(toPatch, new Vector<MHash>(MHash.calculateHashes(paths)),
-				sync);
+				getSync());
 	}
 	
 	/**

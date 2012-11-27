@@ -33,6 +33,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipException;
@@ -73,10 +74,10 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.text.DefaultCaret;
-import javax.swing.tree.TreeNode;
 import javax.xml.bind.JAXBException;
 
 import org.xcom.mod.Main;
+import org.xcom.mod.exceptions.DownloadFailedException;
 import org.xcom.mod.gui.dialogues.AboutDialog;
 import org.xcom.mod.gui.dialogues.SettingsDialog;
 import org.xcom.mod.gui.listeners.GetHashButton;
@@ -274,8 +275,8 @@ public class XCMGUI extends Main {
 			ad.setVisible(true);
 		}
 		
-		Path decompress = Paths.get("tools\\decompress.exe");
-		Path extract = Paths.get("tools\\extract.exe");
+		Path decompress = Paths.get(config.getCompressorPath());
+		Path extract = Paths.get(config.getExtractorPath());
 		
 		if (Files.exists(decompress)) {
 			this.getDecompressorButton.setEnabled(false);
@@ -386,6 +387,7 @@ public class XCMGUI extends Main {
 		tabbedPane.addTab("Home", null, homeTab, "XCom Edit home");
 		
 		JButton btnGetFileHash = new JButton("Cooked");
+		btnGetFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnGetFileHash.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		btnGetFileHash.addActionListener(new GetHashButton(frame) {
 			
@@ -396,126 +398,12 @@ public class XCMGUI extends Main {
 			}
 		});
 		
-		Component rigidArea_5 = Box.createRigidArea(new Dimension(20, 20));
-		rigidArea_5.setPreferredSize(new Dimension(200, 20));
-		homeTab.add(rigidArea_5);
-		
 		JSeparator separator_2 = new JSeparator();
 		separator_2.setPreferredSize(new Dimension(200, 3));
 		homeTab.add(separator_2);
 		
-		Component rigidArea_1 = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea_1);
-		
-		JLabel lblNewLabel_2 = new JLabel("Calculate SHA file hash");
-		homeTab.add(lblNewLabel_2);
-		
-		Component rigidArea = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea);
-		homeTab.add(btnGetFileHash);
-		
-		JButton btnGetUnpackedFile = new JButton("Unpacked");
-		btnGetUnpackedFile.setCursor(Cursor
-				.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-		btnGetUnpackedFile.addActionListener(new GetHashButton(frame) {
-			
-			@Override
-			protected File getFile() {
-				return new File(config.getUnpackedPath());
-			}
-		});
-		homeTab.add(btnGetUnpackedFile);
-		
-		JButton btnGetModFileHash = new JButton("Mod");
-		btnGetModFileHash.addActionListener(new GetHashButton(frame) {
-			
-			@Override
-			protected File getFile() {
-				return Config.getModPath().toFile();
-			}
-		});
-		homeTab.add(btnGetModFileHash);
-		
-		getDecompressorButton = new JButton("Package Decompressor");
-		
-		getDecompressorButton.addActionListener(new ActionListener() {
-			
-			public void actionPerformed(ActionEvent e) {
-				JComponent src = (JComponent) e.getSource();
-				
-				final String url = "http://www.gildor.org/down/32/umodel/decompress.zip";
-				final String saveAs = "decompress.zip";
-				
-				try {
-					downloadZippedTool(url, saveAs, src, null);
-				} catch (MalformedURLException ex) {}
-			}
-		});
-		
-		Component rigidArea_4 = Box.createRigidArea(new Dimension(20, 20));
-		rigidArea_4.setPreferredSize(new Dimension(200, 20));
-		homeTab.add(rigidArea_4);
-		
-		JSeparator separator_3 = new JSeparator();
-		separator_3.setPreferredSize(new Dimension(200, 3));
-		homeTab.add(separator_3);
-		
-		Component rigidArea_2 = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea_2);
-		
-		JLabel lblDownloadTools = new JLabel("Download Gildor's Unreal tools");
-		homeTab.add(lblDownloadTools);
-		
-		Component rigidArea_3 = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea_3);
-		homeTab.add(getDecompressorButton);
-		
-		getExtractorButton = new JButton("Package Extractor");
-		getExtractorButton.addActionListener(new ActionListener() {
-			
-			public void actionPerformed(ActionEvent e) {
-				JComponent src = (JComponent) e.getSource();
-				final String url = "http://www.gildor.org/down/32/umodel/extract.zip";
-				final String saveAs = "extract.zip";
-				
-				try {
-					downloadZippedTool(url, saveAs, src, null);
-				} catch (MalformedURLException ignore) {}
-			}
-		});
-		homeTab.add(getExtractorButton);
-		
-		JButton gildorsLinkButton = new JButton(
-				"<HTML>Click the <FONT color=\\\"#000099\\\"><U>link</U></FONT> to go to Gildor's website.</HTML>");
-		gildorsLinkButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		gildorsLinkButton.setToolTipText("");
-		gildorsLinkButton.addActionListener(new ActionListener() {
-			
-			public void actionPerformed(ActionEvent e) {
-				
-				JButton src = (JButton) e.getSource();
-				if (Desktop.isDesktopSupported()) {
-					try {
-						Desktop.getDesktop().browse(
-								new URL("http://www.gildor.org/").toURI());
-					} catch (IOException | URISyntaxException ex) {
-						ex.printStackTrace(System.err);
-					}
-				}
-			}
-		});
-		gildorsLinkButton.setBorderPainted(false);
-		homeTab.add(gildorsLinkButton);
-		
-		Component rigidArea_6 = Box.createRigidArea(new Dimension(20, 20));
-		rigidArea_6.setPreferredSize(new Dimension(200, 20));
-		homeTab.add(rigidArea_6);
-		
-		JSeparator separator_4 = new JSeparator();
-		separator_4.setPreferredSize(new Dimension(200, 3));
-		homeTab.add(separator_4);
-		
 		JButton btnRestoreOriginalGame = new JButton("Restore Original");
+		btnRestoreOriginalGame.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnRestoreOriginalGame.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				
@@ -535,25 +423,51 @@ public class XCMGUI extends Main {
 						String title = "Upk File Restore";
 						int op = JOptionPane.PLAIN_MESSAGE;
 						
-						print(
-								"ATTEMPTING TO RESTORE ORIGINAL UPK FILES BACKED UP IN UNPACKED",
-								"");
-						print("UNPACKED PATH [" + home, "]");
+						print("ATTEMPT RESTORE ORIGINAL UPK FILES", "");
+						print("WALKING UNPACKED PATH [" + home, "]");
 						
 						Finder f = null;
 						try {
 							f = new Finder(uSize, oComp);
 							Files.walkFileTree(home, f);
+							
 						} catch (IOException ex) {
 							msg = "There was an error restoring the files.";
 							ex.printStackTrace(System.err);
 						}
-						
 						if (f != null && !(f.getNumMatches() > 0)) {
 							msg = "There were no files to restore.";
-						}
+							
+						} else {}
 						
 						JOptionPane.showMessageDialog(frame, msg, title, op);
+						
+						if (f != null && (f.getNumMatches() > 0)) {
+							
+							int n1 = JOptionPane.showConfirmDialog(frame,
+									"Would you like to run XShape on the XComGame.exe?",
+									"Run XShape.", JOptionPane.YES_NO_OPTION);
+							
+							switch (n1) {
+								case JOptionPane.YES_OPTION :
+									Path exeFile = Paths.get(config.getXcomPath(),
+											RELATIVE_EXE_PATH);
+									
+									XShape xs = new XShape(exeFile, f.getUpks());
+									
+									RunInBackground<Void> swingXShape = new RunInBackground<Void>(
+											frame, xs, "Shaping " + exeFile.getFileName(), null) {
+										
+										@Override
+										public void after(Error e, Void ret) {
+											editedUpks.clear();
+										}
+									};
+									swingXShape.addPropertyChangeListener(swingXShape);
+									swingXShape.execute();
+									break;
+							}
+						}
 						break;
 				}
 			}
@@ -568,6 +482,7 @@ public class XCMGUI extends Main {
 				private final String uSize;
 				private final String oComp;
 				
+				private List<Path> upks = new ArrayList<Path>();
 				private int numMatches = 0;
 				
 				Finder(String u_SizeBack, String orig_Compress) {
@@ -588,7 +503,7 @@ public class XCMGUI extends Main {
 				void find(Path file) {
 					Path name = file.getFileName();
 					String temp = name.toString();
-					print("ATTEMPTING TO MATCH [" + name, "]");
+					print("MATCH ATTEMPT [" + name, "]");
 					
 					if (name != null && matcherUSize.matches(name)) {
 						String baseName = name.toString().substring(0,
@@ -603,8 +518,7 @@ public class XCMGUI extends Main {
 						} catch (IOException ex) {
 							ex.printStackTrace(System.err);
 						}
-						print("MOVING & RENAMING [" + name, "] TO [" + to.getFileName(),
-								"]");
+						print("MOVE & RENAME [" + name, "] TO [" + to.getFileName(), "]");
 					}
 					
 					if (name != null && matcherOrigCompress.matches(name)) {
@@ -613,6 +527,7 @@ public class XCMGUI extends Main {
 						
 						Path to = Paths.get(cooked.toString(), baseName);
 						numMatches++;
+						upks.add(Paths.get(config.getUnpackedPath(), baseName));
 						
 						try {
 							Files.move(file, to, StandardCopyOption.REPLACE_EXISTING);
@@ -649,43 +564,31 @@ public class XCMGUI extends Main {
 				public int getNumMatches() {
 					return numMatches;
 				}
+				
+				public List<Path> getUpks() {
+					return this.upks;
+				}
+				
 			}
 		});
 		
-		Component rigidArea_7 = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea_7);
+		Component rigidArea_14 = Box.createRigidArea(new Dimension(20, 20));
+		rigidArea_14.setPreferredSize(new Dimension(50, 20));
+		homeTab.add(rigidArea_14);
 		
 		JLabel lblManageUpkFiles = new JLabel("Manage Upk files");
 		homeTab.add(lblManageUpkFiles);
+		
+		Component rigidArea_7 = Box.createRigidArea(new Dimension(20, 20));
+		rigidArea_7.setPreferredSize(new Dimension(50, 20));
+		homeTab.add(rigidArea_7);
 		
 		Component rigidArea_8 = Box.createRigidArea(new Dimension(20, 20));
 		homeTab.add(rigidArea_8);
 		homeTab.add(btnRestoreOriginalGame);
 		
-		JButton btnDecompressUpk = new JButton("Decompress");
-		btnDecompressUpk.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = new JFileChooser();
-				fc.setCurrentDirectory(getConfig().getCookedPath().toFile());
-				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				fc.setDragEnabled(true);
-				
-				int returnVal = fc.showOpenDialog(frame);
-				
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					java.io.File file = fc.getSelectedFile();
-					try {
-						decompressWithToolCheck(file.toPath(),
-								Paths.get("tools", "decompress.exe"));
-					} catch (MalformedURLException ex) {
-						ex.printStackTrace();
-					}
-				} else {}
-			}
-		});
-		homeTab.add(btnDecompressUpk);
-		
 		JButton btnUnpack = new JButton("Extract");
+		btnUnpack.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnUnpack.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser fc = new JFileChooser();
@@ -699,22 +602,244 @@ public class XCMGUI extends Main {
 					java.io.File file = fc.getSelectedFile();
 					try {
 						extractWithToolCheck(file.toPath(),
-								Paths.get("tools", "extract.exe"), (JComponent) e.getSource());
-					} catch (MalformedURLException ex) {
+								Paths.get("tools", "extract.exe"), (JComponent) e.getSource(), true);
+					} catch (DownloadFailedException ex) {
+						JOptionPane.showMessageDialog(getFrame(), "The download failed...", "Error", JOptionPane.ERROR_MESSAGE);
+						ex.printStackTrace(System.err);
+					} catch (ZipException ex) {
+						JOptionPane.showMessageDialog(getFrame(), "Zip extraction failed...", "Error", JOptionPane.ERROR_MESSAGE);
 						ex.printStackTrace(System.err);
 					}
 				} else {}
 			}
 		});
-		homeTab.add(btnUnpack);
 		
-		Component rigidArea_9 = Box.createRigidArea(new Dimension(20, 20));
-		rigidArea_9.setPreferredSize(new Dimension(200, 20));
-		homeTab.add(rigidArea_9);
+		JButton btnDecompressUpk = new JButton("Decompress");
+		btnDecompressUpk.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnDecompressUpk.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = new JFileChooser();
+				fc.setCurrentDirectory(getConfig().getCookedPath().toFile());
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				fc.setDragEnabled(true);
+				
+				int returnVal = fc.showOpenDialog(frame);
+				
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					java.io.File file = fc.getSelectedFile();
+					try {
+						decompressWithToolCheck(file.toPath(),
+								Paths.get("tools", "decompress.exe"), true);
+					} catch (DownloadFailedException ex) {
+						JOptionPane.showMessageDialog(getFrame(), "The download failed...", "Error", JOptionPane.ERROR_MESSAGE);
+						ex.printStackTrace(System.err);
+					} catch (ZipException ex) {
+						JOptionPane.showMessageDialog(getFrame(), "Zip extraction failed...", "Error", JOptionPane.ERROR_MESSAGE);
+						ex.printStackTrace(System.err);
+					}
+				} else {}
+			}
+		});
+		
+		Component rigidArea_10 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_10);
+		homeTab.add(btnDecompressUpk);
+		homeTab.add(btnUnpack);
 		
 		JSeparator separator_5 = new JSeparator();
 		separator_5.setPreferredSize(new Dimension(200, 3));
 		homeTab.add(separator_5);
+		
+		Component rigidArea_1 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_1);
+		
+		JLabel lblNewLabel_2 = new JLabel("Calculate SHA file hash");
+		homeTab.add(lblNewLabel_2);
+		
+		Component rigidArea = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea);
+		homeTab.add(btnGetFileHash);
+		
+		JButton btnGetUnpackedFile = new JButton("Unpacked");
+		btnGetUnpackedFile.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnGetUnpackedFile.setCursor(Cursor
+				.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		btnGetUnpackedFile.addActionListener(new GetHashButton(frame) {
+			
+			@Override
+			protected File getFile() {
+				return new File(config.getUnpackedPath());
+			}
+		});
+		homeTab.add(btnGetUnpackedFile);
+		
+		JButton btnGetModFileHash = new JButton("Mods");
+		btnGetModFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnGetModFileHash.addActionListener(new GetHashButton(frame) {
+			
+			@Override
+			protected File getFile() {
+				return Config.getModPath().toFile();
+			}
+		});
+		homeTab.add(btnGetModFileHash);
+		
+		getDecompressorButton = new JButton("Decompressor");
+		getDecompressorButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+		
+		getDecompressorButton.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				JComponent src = (JComponent) e.getSource();
+				
+				if (Desktop.isDesktopSupported()) {
+					try {
+						Desktop.getDesktop().browse(
+								new URL("http://www.gildor.org/").toURI());
+					} catch (IOException | URISyntaxException ex) {
+						ex.printStackTrace(System.err);
+					}
+				}
+				final String url = "http://www.gildor.org/down/32/umodel/decompress.zip";
+				final String saveAs = "decompress.zip";
+				
+				try {
+					downloadZippedTool(url, saveAs, src, null);
+				} catch (MalformedURLException ex) {}
+			}
+		});
+		
+		JSeparator separator_3 = new JSeparator();
+		separator_3.setPreferredSize(new Dimension(200, 3));
+		homeTab.add(separator_3);
+		
+		Component rigidArea_15 = Box.createRigidArea(new Dimension(20, 20));
+		rigidArea_15.setPreferredSize(new Dimension(45, 20));
+		homeTab.add(rigidArea_15);
+		
+		JLabel lblOpenExplorer = new JLabel("Open Explorer");
+		homeTab.add(lblOpenExplorer);
+		
+		Component rigidArea_13 = Box.createRigidArea(new Dimension(20, 20));
+		rigidArea_13.setPreferredSize(new Dimension(45, 20));
+		homeTab.add(rigidArea_13);
+		
+		JButton btnExploreGameFiles = new JButton("Cooked");
+		homeTab.add(btnExploreGameFiles);
+		btnExploreGameFiles.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnExploreGameFiles.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Desktop.getDesktop()
+							.open(XCMGUI.getConfig().getCookedPath().toFile());
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+			}
+		});
+		
+		JButton btnExploreUnpacked = new JButton("Unpacked");
+		homeTab.add(btnExploreUnpacked);
+		btnExploreUnpacked.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnExploreUnpacked.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Desktop.getDesktop().open(
+							new File(XCMGUI.getConfig().getUnpackedPath()));
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+			}
+		});
+		
+		JButton btnExploreModFiles = new JButton("Mods");
+		homeTab.add(btnExploreModFiles);
+		btnExploreModFiles.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnExploreModFiles.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					XCMGUI.getConfig();
+					Desktop.getDesktop().open(Config.getModPath().toFile());
+				} catch (IOException ex) {
+					// TODO Auto-generated catch block
+					ex.printStackTrace();
+				}
+			}
+		});
+		
+		Box verticalBox_2 = Box.createVerticalBox();
+		homeTab.add(verticalBox_2);
+		
+		Component verticalStrut_6 = Box.createVerticalStrut(20);
+		verticalStrut_6.setPreferredSize(new Dimension(0, 5));
+		verticalBox_2.add(verticalStrut_6);
+		
+		Component verticalStrut_7 = Box.createVerticalStrut(20);
+		verticalStrut_7.setPreferredSize(new Dimension(0, 5));
+		verticalBox_2.add(verticalStrut_7);
+		
+		JSeparator separator_4 = new JSeparator();
+		separator_4.setPreferredSize(new Dimension(200, 3));
+		homeTab.add(separator_4);
+		
+		Component rigidArea_2 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_2);
+		
+		JLabel lblDownloadTools = new JLabel("Download Gildor's Unreal tools");
+		homeTab.add(lblDownloadTools);
+		
+		Component rigidArea_3 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_3);
+		homeTab.add(getDecompressorButton);
+		
+		getExtractorButton = new JButton("Extractor");
+		getExtractorButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+		getExtractorButton.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				JComponent src = (JComponent) e.getSource();
+				final String url = "http://www.gildor.org/down/32/umodel/extract.zip";
+				final String saveAs = "extract.zip";
+				
+				if (Desktop.isDesktopSupported()) {
+					try {
+						Desktop.getDesktop().browse(
+								new URL("http://www.gildor.org/").toURI());
+					} catch (IOException | URISyntaxException ex) {
+						ex.printStackTrace(System.err);
+					}
+				}
+				try {
+					downloadZippedTool(url, saveAs, src, null);
+				} catch (MalformedURLException ignore) {}
+			}
+		});
+		homeTab.add(getExtractorButton);
+		
+		JButton gildorsLinkButton = new JButton(
+				"<HTML>Click the <FONT color=\\\"#000099\\\"><U>link</U></FONT> to go to Gildor's website.</HTML>");
+		gildorsLinkButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		gildorsLinkButton.setToolTipText("");
+		gildorsLinkButton.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				
+				if (Desktop.isDesktopSupported()) {
+					try {
+						Desktop.getDesktop().browse(
+								new URL("http://www.gildor.org/").toURI());
+					} catch (IOException | URISyntaxException ex) {
+						ex.printStackTrace(System.err);
+					}
+				}
+			}
+		});
+		gildorsLinkButton.setBorderPainted(false);
+		homeTab.add(gildorsLinkButton);
+		
+		JSeparator separator_1 = new JSeparator();
+		separator_1.setPreferredSize(new Dimension(200, 3));
+		homeTab.add(separator_1);
 		
 		JPanel makerTab = new JPanel();
 		
@@ -1337,7 +1462,6 @@ public class XCMGUI extends Main {
 							textFieldModSelected.setText("");
 							textFieldInstallAuthor.setText("");
 							installModDescription.setText("");
-
 							
 						} else if (select == 1) {
 							installButton.setEnabled(true);
@@ -1353,7 +1477,7 @@ public class XCMGUI extends Main {
 							}
 							
 							if (mod != null) {
-								textFieldModSelected.setText(mod.getName());					
+								textFieldModSelected.setText(mod.getName());
 								textFieldInstallAuthor.setText(mod.getAuthor());
 								installModDescription.setText(mod.getDescription());
 							}
@@ -1573,6 +1697,8 @@ public class XCMGUI extends Main {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			
+			JComponent src = (JComponent) e.getSource();
+			
 			String modName = fieldModName.getText();
 			String modAuthor = fieldModAuthor.getText();
 			String modDesc = fieldModDescription.getText();
@@ -1580,12 +1706,12 @@ public class XCMGUI extends Main {
 			java.util.List<java.io.File> originalFiles = filesOriginal.getListModel();
 			java.util.List<java.io.File> editedFiles = filesEdited.getListModel();
 			
-			runMake(modName, modAuthor, modDesc, originalFiles, editedFiles);
+			runMake(modName, modAuthor, modDesc, originalFiles, editedFiles, src);
 		}
 		
 		private void runMake(String modName, String modAuthor, String modDesc,
 				java.util.List<java.io.File> originalFiles,
-				java.util.List<java.io.File> editedFiles) {
+				java.util.List<java.io.File> editedFiles, JComponent src) {
 			
 			if (modName.isEmpty() || modAuthor.isEmpty() || modDesc.isEmpty()) {
 				// custom title, no icon
@@ -1656,21 +1782,17 @@ public class XCMGUI extends Main {
 			// print(MAKE, "READY TO COMPARE FILES", "");
 			
 			final Maker main = new Maker(modConfig);
-			RunInBackground work = new RunInBackground(frame, main, "Making mod "
-					+ modName) {
+			RunInBackground<Void> work = new RunInBackground<Void>(frame, main,
+					"Making mod " + modName, src) {
 				
 				/*
 				 * Executed in event dispatch thread
 				 */
 				@Override
-				public void done() {
-					
-					Toolkit.getDefaultToolkit().beep();
+				public void after(Error e, Void r) {
 					
 					String msg = null;
 					String title = null;
-					
-					Error e = ((Maker) main).getError();
 					
 					switch (e) {
 						case NOTHING :
@@ -1721,13 +1843,14 @@ public class XCMGUI extends Main {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			
+			final JComponent src = (JComponent) e.getSource();
+			
 			JFileTree tree = modDirectoryTree.getTree();
 			java.io.File xmod = tree.getRoot().getChildAt(tree.getSelectionRows()[0])
 					.getFile();
 			
-			int n = JOptionPane.showConfirmDialog(frame,
-					"This process may take a while. Would you still like to continue?",
-					"Install mod.", JOptionPane.YES_NO_OPTION);
+			int n = JOptionPane.showConfirmDialog(frame, "Confirm to continue.",
+					"Install mod.", JOptionPane.OK_CANCEL_OPTION);
 			
 			switch (n) {
 				case JOptionPane.NO_OPTION :
@@ -1738,19 +1861,18 @@ public class XCMGUI extends Main {
 					break;
 			}
 			
-			final Installer main = new Installer(xmod, (JComponent) e.getSource());
-			RunInBackground swingInstaller = new RunInBackground(frame, main,
-					"Installing " + xmod.getName()) {
+			final Installer main = new Installer(xmod);
+			RunInBackground<Object> swingInstaller = new RunInBackground<Object>(
+					frame, main, "Installing " + xmod.getName(), src) {
 				
 				@Override
-				public void done() {
+				public void after(Error e, Object ret) {
 					
-					Toolkit.getDefaultToolkit().beep();
 					XMod installed = ((Installer) main).getInstallPackage();
 					
 					if (installed.getIsInstalled()) {
 						int n = JOptionPane.showConfirmDialog(frame,
-								"Would you like to run XShape on the XCOM exe?", "Run XShape.",
+								"Would you like to run XShape on XComGame.exe?", "Run XShape.",
 								JOptionPane.YES_NO_OPTION);
 						
 						switch (n) {
@@ -1760,15 +1882,13 @@ public class XCMGUI extends Main {
 								
 								XShape xs = new XShape(exeFile, editedUpks);
 								
-								RunInBackground swingXShape = new RunInBackground(frame, xs,
-										"Shaping " + exeFile.getFileName()) {
+								RunInBackground<Void> swingXShape = new RunInBackground<Void>(
+										frame, xs, "Shaping " + exeFile.getFileName(), null) {
 									
 									@Override
-									public void done() {
-										
+									public void after(Error e, Void r) {
 										editedUpks.clear();
 									}
-									
 								};
 								swingXShape.addPropertyChangeListener(swingXShape);
 								swingXShape.execute();
@@ -1777,30 +1897,52 @@ public class XCMGUI extends Main {
 								return;
 						}
 					} else {
-						String msg = null;
-						String title = null;
 						
-						switch (((Installer) main).getError()) {
+						String msg = null;
+						String title = e.getMsg();
+						
+						print(title, "");
+						
+						switch (e) {
 							case INS_UPK_FILE_NF :
 								msg = "Please check your settings and check the install file.";
-								title = "Upk file not found.";
 								break;
 							case INS_UPK_FILE_NA :
 								msg = "Upk file could not be accessed please close other programs.";
-								title = "Upk file not accesible.";
 								break;
 							case INS_UPK_RES_NF :
 								msg = "Upk resource could not be found. The mod may already be installed.";
-								title = "Upk resource not found.";
 								break;
 							case XML_SAVE_ERROR :
 								msg = "The log could not be saved. Changes may need to be reverted.";
-								title = "Could not save the installation log.";
 								break;
 							case INS_FATAL :
 								msg = "Fatal error: The searcher threads were closed unexpectedly. Try again.";
-								title = "Searchers close unexpectedly.";
 								break;
+							case INS_UPK_FILE_COMPRESSED :
+								@SuppressWarnings("unchecked")
+								List<Path> uncFiles = (List<Path>) ret;
+								
+								String fileNames = "";
+								
+								for (Path p : uncFiles) {
+									fileNames += (p.getFileName() + " ");
+								}
+								
+								int n = JOptionPane.showConfirmDialog(XCMGUI.getFrame(),
+										"Cannot continue. [" + fileNames + "] "
+												+ (uncFiles.size() > 1 ? "are" : "is")
+												+ " not decompressed do you want to decompress now?",
+										title, JOptionPane.YES_NO_OPTION);
+								
+								switch (n) {
+									case JOptionPane.YES_OPTION :
+										new DecompressInBackGround(uncFiles, src).execute();
+										break;
+									default :
+								}
+								
+								msg = null;
 							default :
 								break;
 						}
@@ -1810,6 +1952,7 @@ public class XCMGUI extends Main {
 									JOptionPane.ERROR_MESSAGE);
 						}
 					}
+					setProgress(0);
 				}
 			};
 			swingInstaller.addPropertyChangeListener(swingInstaller);
@@ -1821,6 +1964,8 @@ public class XCMGUI extends Main {
 		
 		@Override
 		public void actionPerformed(ActionEvent e) {
+			
+			JComponent src = (JComponent) e.getSource();
 			
 			Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
 			
@@ -1841,7 +1986,7 @@ public class XCMGUI extends Main {
 						paths.add(Paths.get(config.getCookedPath().toString(),
 								"XComStrategyGame.upk"));
 						
-						runXShapeInBackGround(exeFile, paths);
+						runXShapeInBackGround(exeFile, paths, src);
 						return;
 					default :
 						return;
@@ -1853,7 +1998,7 @@ public class XCMGUI extends Main {
 				switch (n) {
 					case JOptionPane.YES_OPTION :
 						
-						runXShapeInBackGround(exeFile, editedUpks);
+						runXShapeInBackGround(exeFile, editedUpks, src);
 						return;
 					default :
 						return;
@@ -1866,42 +2011,37 @@ public class XCMGUI extends Main {
 	 * 
 	 * @param exeFile
 	 * @param paths
+	 * @param src
 	 */
 	public static void runXShapeInBackGround(Path exeFile,
-			java.util.ArrayList<Path> paths) {
+			java.util.ArrayList<Path> paths, JComponent src) {
 		XShape xs = new XShape(exeFile, paths);
 		
-		RunInBackground swingXShape = new RunInBackground(frame, xs, "Shaping "
-				+ exeFile.getFileName()) {
+		RunInBackground<Void> swingXShape = new RunInBackground<Void>(frame, xs,
+				"Shaping " + exeFile.getFileName(), src) {
 			
 			@Override
-			public void done() {
+			public void after(Error e, Void r) {
 				
-				Error e = main.getError();
 				String msg = e.getMsg();
 				String title = "XShape";
 				
-				try {
-					get();
-				} catch (InterruptedException | ExecutionException ex) {
-					ex.printStackTrace(System.err);
-					
-					switch (e) {
-						case NOTHING : // SHOULD NOT GET THIS CASE IF ERRORS HANDLED
-														// PROPERLY
-							break;
-						case XSHA_HASH_GET_ERROR :
-						case XSHA_MOD_ACCESS_ERROR :
-						case XSHA_UPK_FILE_COMPRESSED :
-						default :
-							return;
-					}
-					
-					if (msg != null) {
-						JOptionPane.showMessageDialog(frame, msg, title,
-								JOptionPane.ERROR_MESSAGE);
-					}
+				switch (e) {
+					case NOTHING : // SHOULD NOT GET THIS CASE IF ERRORS HANDLED
+													// PROPERLY
+						break;
+					case XSHA_HASH_GET_ERROR :
+					case XSHA_MOD_ACCESS_ERROR :
+					case XSHA_UPK_FILE_COMPRESSED :
+					default :
+						return;
 				}
+				
+				if (msg != null) {
+					JOptionPane.showMessageDialog(frame, msg, title,
+							JOptionPane.ERROR_MESSAGE);
+				}
+				
 				if (!this.isCancelled()) {
 					editedUpks.clear();
 					msg = "XShape has finished patching XComGame.exe";
@@ -1963,52 +2103,65 @@ public class XCMGUI extends Main {
 	}
 	
 	/**
+	 * Will decompress a chosen file. Checks for tool existence and gets it if
+	 * needed.
 	 * 
 	 * @param fileToDecom
 	 * @param decompress
-	 * @throws MalformedURLException
+	 * @throws DownloadFailedException
+	 * @throws ZipException 
 	 */
 	public static void decompressWithToolCheck(final Path fileToDecom,
-			Path decompress) throws MalformedURLException {
+			Path decompress, Boolean inBackGround) throws DownloadFailedException, ZipException {
 		if (Files.notExists(decompress)) {
-			final String url = "http://www.gildor.org/down/32/umodel/decompress.zip";
+			URL url = null;
+			try {
+				url = new URL("http://www.gildor.org/down/32/umodel/decompress.zip");
+			} catch (MalformedURLException ignore) {
+				ignore.printStackTrace(System.err);
+			}
 			final String saveAs = "decompress.zip";
-			
-			XCMGUI.downloadZippedTool(url, saveAs, null, new Runnable() {
-				@Override
-				public void run() {
-					new DecompressInBackGround(fileToDecom).execute();
-				}
-			});
-		} else {
+			Path zip = Main.download(saveAs, url);
+			Main.unZip(zip, Paths.get("tools"));
+		}
+		if (inBackGround) {
 			new DecompressInBackGround(fileToDecom).execute();
+		} else {
+			Main.decompress(fileToDecom);
 		}
 	}
 	
 	/**
+	 * Will decompress a chosen file. Checks for tool existence and gets it if
+	 * needed.
 	 * 
 	 * @param extract
 	 * @param upkToExtract
 	 * @param src
-	 * @throws MalformedURLException
+	 * @throws DownloadFailedException
+	 * @throws ZipException 
 	 */
 	public static void extractWithToolCheck(final Path upkToExtract,
-			final Path extract, final JComponent src) throws MalformedURLException {
+			final Path extract, final JComponent src, Boolean inBackGround)
+			throws DownloadFailedException, ZipException {
+		
 		if (Files.notExists(extract)) {
 			
-			final String url = "http://www.gildor.org/down/32/umodel/extract.zip";
+			URL url = null;
+			try {
+				url = new URL("http://www.gildor.org/down/32/umodel/extract.zip");
+			} catch (MalformedURLException ignore) {
+				ignore.printStackTrace(System.err);
+			}
 			final String saveAs = "extract.zip";
 			
-			XCMGUI.downloadZippedTool(url, saveAs, null, new Runnable() {
-				@Override
-				public void run() {
-					new ExtractInBackGround(upkToExtract, src).execute();
-				}
-			});
-			
-		} else {
-			new ExtractInBackGround(upkToExtract, src).execute();
+			Path zip = Main.download(saveAs, url);
+			Main.unZip(zip, Paths.get("tools"));
 		}
+		if (inBackGround) {
+			new ExtractInBackGround(upkToExtract, src).execute();
+		} else Main.extract(upkToExtract);
+		
 	}
 	
 	@Override

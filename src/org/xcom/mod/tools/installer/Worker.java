@@ -80,8 +80,6 @@ final public class Worker implements Runnable {
 		final long targetSum = mod.getByteSum();
 		final byte[] searchHash = MHash.hexStringToBytes(mod.getSearchHash());
 		
-		print("SEARCHER [" + id, "] STARTING");
-		
 		String work = "...";
 		
 		float progressPlus = buffer.length / workers.length / progress;
@@ -112,18 +110,17 @@ final public class Worker implements Runnable {
 				try {
 					// inconsequential formula to spread out console output
 					if (j % 48 == (id * 1) % 24) {
-						print("SEARCHER [" + id, "] WORKING", (work += "."));
+						print("SEARCHING", (work += "."));
 					}
 					
 					final byte[] bufferSegmt = Arrays.copyOfRange(buffer, j, m);
 					final byte[] hash = md.digest(bufferSegmt);
 					
 					if (Arrays.equals(hash, searchHash)) {
-						print("SEARCHER [" + id,
-								"] RESOURCE FOUND - BYTE SUMS EQUAL & SEARCH HASH FOUND");
+						print("FOUND - BYTE SUM & HASH MATCH");
 						
 						for (final HexEdit c : mod.getChanges()) {
-							print("SEARCHER [" + id, "] BUFFER OFFSET [" + c.getOffset(),
+							print("BUFFER OFFSET [" + c.getOffset(),
 									"] CHANGED TO [" + c.getData(), "]");
 							
 							bufferSegmt[c.getOffset()] = DatatypeConverter.parseHexBinary(c
