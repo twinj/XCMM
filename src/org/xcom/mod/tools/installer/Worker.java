@@ -42,6 +42,7 @@ final public class Worker implements Runnable {
 	final MessageDigest md;
 	int id;
 	float progress;
+	@SuppressWarnings("rawtypes")
 	private SyncProgress sync;
 	
 	// @SuppressWarnings("VolatileArrayField")
@@ -53,6 +54,7 @@ final public class Worker implements Runnable {
 	volatile int resultInt = -1;
 	volatile boolean isInstalled = false;
 	
+	@SuppressWarnings("rawtypes")
 	public Worker(ResFile mod, byte[] buffer, int start, int end,
 			MessageDigest md, CountDownLatch mainCountDownLock,
 			CountDownLatch workerCountDownLock, Thread[] workers, int id,

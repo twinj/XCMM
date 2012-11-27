@@ -91,11 +91,11 @@ public abstract class Main implements Runnable {
 	protected Error ERROR;
 	
 	public final static String CONSOLE_SEPARATOR = "**************************"
-			+ "*******************************" + "********************";
+			+ "*******************************" + "*******************************";
 	public final static String SYSTEM_NAME = "XCMM";
-	public final static String MAIN_DELEGATE = "[main] ";
-	public final static String MAKE_DELEGATE = "[make] ";
-	public final static String INSTALL_DELEGATE = "[install] ";
+	public final static String MAIN_DELEGATE = "";
+	public final static String MAKE_DELEGATE = "";
+	public final static String INSTALL_DELEGATE = "";
 	
 	public final static String INVOKE_GUI = "-g";
 	public final static String INVOKE_MAKE = "-m";
@@ -201,13 +201,13 @@ public abstract class Main implements Runnable {
 	 * @param editedFiles
 	 * @return true if all matched
 	 */
-	public static boolean fileNamesMatch(List<File> originalFiles,
-			List<File> editedFiles) {
+	public static boolean fileNamesMatch(List<Path> originalFiles,
+			List<Path> editedFiles) {
 		
-		for (File o : originalFiles) {
+		for (Path o : originalFiles) {
 			boolean matched = false;
-			for (File e : editedFiles) {
-				if (e.getName().equals(o.getName())) {
+			for (Path e : editedFiles) {
+				if (e.getFileName().equals(o.getFileName())) {
 					matched = true;
 					break;
 				}
@@ -351,49 +351,7 @@ public abstract class Main implements Runnable {
 		print("COPIED [" + from.getFileName(), "] FROM [" + from.getParent(),
 				"] TO [" + to.getParent(), "]");
 	}
-	
-	/**
-	 * Save either modified or original mod resources to the mod directory.
-	 * 
-	 * @param files
-	 * @param path
-	 * @throws CopyFileException
-	 */
-	public static void copyFiles(List<File> files, Path path,
-			Boolean replaceExisting) throws CopyFileException {
-		
-		for (File f : files) {
-			
-			Path saveDir = Paths.get(path.toString(), getUpkFilename(f.toPath()));
-			
-			if (Files.notExists(saveDir)) {
-				try {
-					Files.createDirectory(saveDir);
-				} catch (IOException ex) {
-					throw new CopyFileException();
-				}
-			}
-			copyFile(f.toPath(), Paths.get(path.toString(), f.getName()),
-					replaceExisting);
-		}
-	}
-	
-	/**
-	 * Gets Upk filename
-	 * 
-	 * @param filepath
-	 * 
-	 * @return String
-	 */
-	protected static String getUpkFilename(Path resource) {
-		
-		int unpackedECount = Paths.get(config.getUnpackedPath()).getNameCount();
-		String ret = resource.subpath(unpackedECount, unpackedECount + 1)
-				.toString() + ".upk";
-		print("UPK FILENAME [", ret, "]");
-		return ret;
-	}
-	
+
 	/**
 	 * Returns whether a upk file is compressed or not.
 	 * 

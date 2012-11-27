@@ -26,6 +26,7 @@ public class Patcher extends Main {
 		
 	}
 	
+	@SuppressWarnings("unused")
 	@Override
 	public void run() {
 		printActionMessage("PATCHER");

@@ -1,6 +1,7 @@
 package org.xcom.mod.gui.dialogues;
 
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -50,13 +51,26 @@ public class AboutDialog extends JDialog {
 		});
 
 		close.setAlignmentX(0.5f);
-
-		JEditorPane editorPane = new JEditorPane();
-		editorPane.setText("\u2606\u250C\u2500\u2510\u3000\u2500\u2510\u2606\r\n\u3000\u2502\u2592\u2502 /\u2592/\t\tVersion: 1.00\r\n\u3000\u2502\u2592\u2502/\u2592/\r\n\u3000\u2502\u2592 /\u2592/\u2500\u252C\u2500\u2510\tXCOM Mod Manager\r\n\u3000\u2502\u2592\u2502\u2592|\u2592\u2502\u2592\u2502\r\n\u250C\u2534\u2500\u2534\u2500\u2510-\u2518\u2500\u2518 \tBrought to you by: \r\n\u2502\u2592\u250C\u2500\u2500\u2518\u2592\u2592\u2592\u2502\tDaemonjax, dose206, twinj\r\n\u2514\u2510\u2592\u2592\u2592\u2592\u2592\u2592\u250C\u2518\r\n\u3000\u2514\u2510\u2592\u2592\u2592\u2592\u250C\u2518");
-		editorPane.setEditable(false);
-		editorPane.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		editorPane.setBounds(10, 21, 319, 152);
-		panel.add(editorPane);
+		
+		JPanel panel_1 = new JPanel();
+		panel_1.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
+		panel_1.setBounds(10, 21, 319, 151);
+		panel.add(panel_1);
+				panel_1.setLayout(null);
+		
+				JEditorPane editorPane = new JEditorPane();
+				editorPane.setFont(new Font("Serif", Font.PLAIN, 11));
+				editorPane.setBounds(2, 2, 122, 147);
+				panel_1.add(editorPane);
+				editorPane.setText("\u2606\u250C\u2500\u2510   \u2500\u2510\u2606\r\n\u3000\u2502\u2592\u2502 /\u2592/\r\n\u3000\u2502\u2592\u2502/\u2592/\r\n\u3000\u2502\u2592 /\u2592/\u2500\u252C\u2500\u2510\r\n\u3000\u2502\u2592\u2502\u2592|\u2592\u2502\u2592\u2502\r\n\u250C\u2534\u2500\u2534\u2500\u2510-\u2518\u2500\u2518 \r\n\u2502\u2592\u250C\u2500\u2500\u2518\u2592\u2592\u2592\u2502\r\n\u2514\u2510\u2592\u2592\u2592\u2592\u2592\u2592\u250C\u2518\r\n\u3000\u2514\u2510\u2592\u2592\u2592\u2592\u250C\u2518");
+				editorPane.setEditable(false);
+				editorPane.setBorder(null);
+				
+				JEditorPane dtrpnVersionbeta = new JEditorPane();
+				dtrpnVersionbeta.setBounds(124, 2, 192, 147);
+				dtrpnVersionbeta.setBorder(null);
+				panel_1.add(dtrpnVersionbeta);
+				dtrpnVersionbeta.setText("XCOM Mod Manager\r\n\r\nVersion: 1.03-BETA\r\n\r\nCredits: \r\n    Daemonjax, dose206, Drakous79,  \r\n    dreadylein, Gildor, twinj");
 
 
 		setModalityType(ModalityType.APPLICATION_MODAL);

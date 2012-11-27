@@ -1,7 +1,7 @@
 package org.xcom.mod.gui;
 
 import java.awt.Component;
-import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -19,7 +19,7 @@ import javax.swing.event.ListDataListener;
  * wrap) to display a File[]. The renderer displays the file icon obtained from
  * FileSystemView.
  */
-public class FileList extends JList<File> {
+public class FileList extends JList<Path> {
 
 	ArrayListModel listModel;
 
@@ -54,8 +54,8 @@ class MyCellRenderer extends JLabel implements ListCellRenderer<Object> {
 			boolean isSelected, // is the cell selected
 			boolean cellHasFocus) // does the cell have focus
 	{
-		File f = (File) value;
-		String s = f.getName() + " @ " + f.getParent();
+		Path f = (Path) value;
+		String s = f.getFileName().toString() + " @ " + f.getParent();
 		setText(s);
 		setIcon((s.length() > 10) ? longIcon : shortIcon);
 		if (isSelected) {
@@ -72,7 +72,7 @@ class MyCellRenderer extends JLabel implements ListCellRenderer<Object> {
 	}
 }
 
-class ArrayListModel extends ArrayList<File> implements ListModel<File> {
+class ArrayListModel extends ArrayList<Path> implements ListModel<Path> {
 
 	private static final long serialVersionUID = 1L;
 	
@@ -82,7 +82,7 @@ class ArrayListModel extends ArrayList<File> implements ListModel<File> {
 		source = src;
 	}
 	
-	public File getElementAt(int index) {
+	public Path getElementAt(int index) {
 		return get(index);
 	}
 
@@ -111,14 +111,14 @@ class ArrayListModel extends ArrayList<File> implements ListModel<File> {
 
 	// REMAINDER ARE OVERRIDES JUST TO CALL NOTIFYLISTENERS
 	@Override
-	public boolean add(File o) {
+	public boolean add(Path o) {
 		boolean b = super.add(o);
 		if (b)
 			notifyListeners();
 		return b;
 	}
 
-	public void add(int index, File element) {
+	public void add(int index, Path element) {
 		super.add(index, element);
 		notifyListeners();
 	}
@@ -136,8 +136,8 @@ class ArrayListModel extends ArrayList<File> implements ListModel<File> {
 		notifyListeners();
 	}
 	@Override
-	public File remove(int i) {
-		File o = super.remove(i);
+	public Path remove(int i) {
+		Path o = super.remove(i);
 		notifyListeners();
 		return o;
 	}
@@ -149,15 +149,15 @@ class ArrayListModel extends ArrayList<File> implements ListModel<File> {
 		return b;
 	}
 
-	public boolean remove(File o) {
+	public boolean remove(Path o) {
 		boolean b = super.remove(o);
 		if (b)
 			notifyListeners();
 		return b;
 	}
 
-	public File set(int index, File element) {
-		File o = super.set(index, element);
+	public Path set(int index, Path element) {
+		Path o = super.set(index, element);
 		notifyListeners();
 		return o;
 	}

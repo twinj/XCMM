@@ -178,7 +178,7 @@ final public class Installer extends Main {
 	 * @throws UpkFileNotDecompressedException
 	 * @throws UpkFileNotFoundException
 	 */
-	private static List<Path> findResourceUpkFile(List<ResFile> files)
+	static List<Path> findResourceUpkFile(List<ResFile> files)
 			throws UpkFileNotDecompressedException, UpkFileNotFoundException,
 			UpkFileAccessException {
 		
@@ -225,7 +225,8 @@ final public class Installer extends Main {
 	 * 
 	 * @return
 	 */
-	private static List<ResFile> makeUPKChanges(List<ResFile> files,
+	@SuppressWarnings("rawtypes")
+	static List<ResFile> makeUPKChanges(List<ResFile> files,
 			Vector<Path> upkFiles, SyncProgress sync)
 			throws UpkResourceNotFoundException, UpkFileAccessException,
 			SearchInterruptedException {
@@ -328,7 +329,8 @@ final public class Installer extends Main {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	private static Worker[] doSearch(int threadsNum, Worker[] workers,
+	@SuppressWarnings("rawtypes")
+	static Worker[] doSearch(int threadsNum, Worker[] workers,
 			Thread[] threads, int i, ByteBuffer buffer, SyncProgress sync,
 			float[] progress, ResFile f) throws InterruptedException {
 		
@@ -373,7 +375,7 @@ final public class Installer extends Main {
 	 * @param mConfig
 	 * @return
 	 */
-	private static float[] calculateWorkProgress(List<ResFile> files,
+	static float[] calculateWorkProgress(List<ResFile> files,
 			Vector<Path> upkFiles, int threadsNum) {
 	
 		int i = 0;

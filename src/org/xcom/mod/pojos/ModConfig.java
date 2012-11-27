@@ -1,6 +1,5 @@
 package org.xcom.mod.pojos;
 
-import java.io.File;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,7 +18,7 @@ import org.xcom.mod.gui.XCMGUI;
  * @author Daniel Kemp
  */
 @XmlRootElement(name = "XModConfig")
-@XmlType(propOrder = { "name", "author", "description", "originalFilePaths" })
+@XmlType(propOrder = { "name", "author", "description", "originalFilePaths", "editedFilePaths" })
 public class ModConfig implements Serializable, ModXml {
 
 	private static final long serialVersionUID = 1L;
@@ -27,7 +26,8 @@ public class ModConfig implements Serializable, ModXml {
 	private final static String AUTHOR = "Author";
 	private final static String NAME = "Name";
 	private final static String DESCRIPTION = "Description";
-	private final static String CHANGED_FILES = "ChangedFiles";
+	private final static String ORIGINAL_FILES = "OriginalFiles";
+	private final static String EDITED_FILES = "EditedFiles";
 	private final static String FILE_EXT = ".xmod.config.xml";
 
 	// xml properties
@@ -35,21 +35,25 @@ public class ModConfig implements Serializable, ModXml {
 	protected String author;
 	protected String description;
 	protected List<String> originalFilePaths;
+	protected List<String> editedFilePaths;
+
 	
 	// Non xml
-	private List<File> editedFiles;
-	private List<File> originalFiles;
+	private List<Path> editedFiles;
+	private List<Path> originalFiles;
 
 	public ModConfig() {
 	}
 	
 	public ModConfig(String name, String author, String description,
-			List<String> originalFilePaths) {
+			List<String> originalFilePaths, List<String> editedFilePaths) {
 		super();
 		this.name = name;
 		this.author = author;
 		this.description = description;
 		this.originalFilePaths = originalFilePaths;
+		this.editedFilePaths = editedFilePaths;
+
 	}
 
 	@XmlElement(name = NAME)
@@ -79,8 +83,8 @@ public class ModConfig implements Serializable, ModXml {
 		this.description = description;
 	}
 
-	@XmlElementWrapper(name = CHANGED_FILES)
-	@XmlElement(name = "PathToOriginal")
+	@XmlElementWrapper(name = ORIGINAL_FILES)
+	@XmlElement(name = "Path")
 	public List<String> getOriginalFilePaths() {
 		return originalFilePaths;
 	}
@@ -88,22 +92,32 @@ public class ModConfig implements Serializable, ModXml {
 	public void setOriginalFilePaths(List<String> originalFilePaths) {
 		this.originalFilePaths = originalFilePaths;
 	}
+	
+	@XmlElementWrapper(name = EDITED_FILES)
+	@XmlElement(name = "Path")
+	public List<String> getEditedFilePaths() {
+		return editedFilePaths;
+	}
+
+	public void setEditedFilePaths(List<String> editedFilePaths) {
+		this.editedFilePaths = editedFilePaths;
+	}
 
 	@XmlTransient
-	public List<File> getEditedFiles() {
+	public List<Path> getEditedFiles() {
 		return editedFiles;
 	}
 
-	public void setEditedFiles(List<File> editedFiles) {
+	public void setEditedFiles(List<Path> editedFiles) {
 		this.editedFiles = editedFiles;
 	}
 
 	@XmlTransient
-	public List<File> getOriginalFiles() {
+	public List<Path> getOriginalFiles() {
 		return originalFiles;
 	}
 
-	public void setOriginalFiles(List<File> originalFiles) {
+	public void setOriginalFiles(List<Path> originalFiles) {
 		this.originalFiles = originalFiles;
 	}
 

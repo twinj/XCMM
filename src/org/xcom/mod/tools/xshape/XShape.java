@@ -69,7 +69,6 @@ public class XShape extends Main {
 	public void run() {
 		
 		printActionMessage("XSHAPE");
-		getSync().plusProgress(1);
 		
 		try {
 			List<Path> uncompressedFiles = new ArrayList<>();
@@ -132,6 +131,7 @@ public class XShape extends Main {
 	 * @param sync
 	 * @throws IOException
 	 */
+	@SuppressWarnings("rawtypes")
 	static void startPatching(Path toPatch, Vector<MHash> hashes,
 			SyncProgress sync) throws IOException {
 		

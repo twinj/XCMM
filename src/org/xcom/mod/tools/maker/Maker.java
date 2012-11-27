@@ -18,7 +18,6 @@
 package org.xcom.mod.tools.maker;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -66,10 +65,10 @@ final public class Maker extends Main {
 		
 		try {
 			saveXml(modConfig);
+			copyFile(modConfig.getXmlSavePath(), Paths.get("temp\\history.xml"), true);
 			printXml(modConfig);
 			XMod xMod = generateXMod(modConfig, getSync());
 			saveXModFiles(modConfig, xMod);
-			getSync().plusProgress(1 * modConfig.getEditedFiles().size());
 			
 		} catch (XmlSaveException e) {
 			ERROR = Error.XML_SAVE_ERROR;
@@ -118,14 +117,67 @@ final public class Maker extends Main {
 	 * @throws XmlSaveException
 	 * @throws CopyFileException
 	 */
-	private static void saveXModFiles(ModConfig modConfig, XMod xMod)
+	static void saveXModFiles(ModConfig modConfig, XMod xMod)
 			throws XmlSaveException, CopyFileException {
 		// Save Exportable mod
 		print("SAVING XMOD FILES", "");
 		saveXml(xMod);
-		copyFiles(modConfig.getEditedFiles(), xMod.getEditedFilesSavePath(), false);
+		copyFiles(modConfig.getEditedFiles(), xMod.getEditedFilesSavePath(), true,
+				false);
 		copyFiles(modConfig.getOriginalFiles(), xMod.getOriginalFilesSavePath(),
-				true);
+				true, true);
+	}
+	
+	/**
+	 * Save either modified or original mod resources to the mod directory.
+	 * 
+	 * @param files
+	 * @param path
+	 * @throws CopyFileException
+	 */
+	static void copyFiles(List<Path> files, Path path, Boolean replaceExisting,
+			Boolean alternatePaths) throws CopyFileException {
+		
+		for (Path f : files) {
+			
+			Path p = null;
+			
+			if (alternatePaths) {
+				int unpackedECount = Paths.get(config.getUnpackedPath())
+						.toAbsolutePath().getNameCount();
+				p = f.toAbsolutePath().getParent();
+				p = Paths.get(path.toString(),
+						p.subpath(unpackedECount, p.getNameCount()).toString());			
+			}
+			
+			if (p != null && Files.notExists(p)) {
+				try {
+					Files.createDirectories(p);
+				} catch (IOException ex) {
+					throw new CopyFileException();
+				}
+			}
+			copyFile(f, Paths.get((p == null ? path.toString() : p.toString()), f.getFileName().toString()),
+					replaceExisting);
+		}
+	}
+	
+	/**
+	 * Gets Upk filename
+	 * 
+	 * @param filepath
+	 * 
+	 * @return String
+	 */
+	static String getUpkFilename(Path resource) {
+		
+		int unpackedECount = Paths.get(config.getUnpackedPath()).toAbsolutePath()
+				.getNameCount();
+		String ret = resource.toAbsolutePath()
+				.subpath(unpackedECount, unpackedECount + 1).toString()
+				+ ".upk";
+		print("UPK FILENAME [", ret, "]");
+		return ret;
 	}
 	
 	/**
@@ -139,7 +191,8 @@ final public class Maker extends Main {
 	 * @throws DetectUpkChangesException
 	 * @throws CalculateHashException
 	 */
-	public static XMod generateXMod(ModConfig monfig, SyncProgress sync)
+	@SuppressWarnings("rawtypes")
+	static XMod generateXMod(ModConfig monfig, SyncProgress sync)
 			throws XModXmlAccessException, ProcessFileChangesException,
 			DetectUpkChangesException, CalculateHashException {
 		
@@ -152,8 +205,6 @@ final public class Maker extends Main {
 		xMod.setName(monfig.getName());
 		xMod.setAuthor(monfig.getAuthor());
 		xMod.setDescription(monfig.getDescription());
-		
-		print(CONSOLE_SEPARATOR);
 		
 		// Write the xml unmarshalled object
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -188,7 +239,8 @@ final public class Maker extends Main {
 	 * @throws DetectUpkChangesException
 	 * @throws CalculateHashException
 	 */
-	public static List<ResFile> processResourceChanges(ModConfig mConfig,
+	@SuppressWarnings("rawtypes")
+	static List<ResFile> processResourceChanges(ModConfig mConfig,
 			SyncProgress sync) throws ProcessFileChangesException,
 			DetectUpkChangesException, CalculateHashException {
 		List<ResFile> changes = new ArrayList<ResFile>();
@@ -199,12 +251,12 @@ final public class Maker extends Main {
 		// For each modded file get changes
 		for (String path : mConfig.getOriginalFilePaths()) {
 			
-			Path originalResource = Paths.get(config.getUnpackedPath() + path);
+			Path originalResource = Paths.get(config.getUnpackedPath(), path);
 			String upkFileName = getUpkFilename(originalResource);
 			MHash hash = new MHash(originalResource);
 			
-			print("PROCESSING ORIGINAL [" + originalResource.getFileName(), "] FROM ["
-					+ upkFileName + "]");
+			print("PROCESSING ORIGINAL [" + originalResource.getFileName(),
+					"] FROM [" + upkFileName + "]");
 			print("SEARCH HASH [", hash.toPrintString(), "]");
 			
 			final int sum = getDataSum(originalResource);
@@ -226,7 +278,7 @@ final public class Maker extends Main {
 			}
 			
 			f.setChanges(getUPKChanges(originalResource, mConfig.getEditedFiles()
-					.get(i).toPath(), progress[i], sync));
+					.get(i), progress[i], sync));
 			
 			changes.add(f);
 			printXml(f);
@@ -237,7 +289,7 @@ final public class Maker extends Main {
 		}
 		return changes;
 	}
-		
+	
 	/**
 	 * Sum the byte contents of the file to help with confirming hash
 	 * 
@@ -279,6 +331,7 @@ final public class Maker extends Main {
 	 * @return a List of changes
 	 * @throws DetectUpkChangesException
 	 */
+	@SuppressWarnings("rawtypes")
 	static List<HexEdit> getUPKChanges(Path originalPath, Path modifedPath,
 			float progress, SyncProgress sync) throws DetectUpkChangesException {
 		
@@ -286,7 +339,8 @@ final public class Maker extends Main {
 		try (InputStream modified = Files.newInputStream(modifedPath);
 				InputStream original = Files.newInputStream(originalPath)) {
 			
-			print("COMPARING ORIGINAL [" + originalPath.getFileName() + "] WITH EDITED [" + modifedPath.getFileName(), "]");
+			print("COMPARING ORIGINAL [" + originalPath.getFileName()
+					+ "] WITH EDITED [" + modifedPath.getFileName(), "]");
 			
 			// Compare files save offset position and data change
 			int offset = 0, change;
@@ -323,7 +377,7 @@ final public class Maker extends Main {
 		return list;
 	}
 	
-	private static void print(String... strings) {
+	static void print(String... strings) {
 		print(MAKE, strings);
 	}
 	
@@ -334,8 +388,8 @@ final public class Maker extends Main {
 	 * @param mConfig
 	 * @return
 	 */
-	private static float[] calculateWorkProgress(ModConfig mConfig) {
-		List<File> editedFiles = mConfig.getEditedFiles();
+	static float[] calculateWorkProgress(ModConfig mConfig) {
+		List<Path> editedFiles = mConfig.getOriginalFiles();
 		int i = 0;
 		int size = editedFiles.size();
 		// fileSum - size; fileDone - size; getHaSh - size; save; copy
@@ -345,8 +399,8 @@ final public class Maker extends Main {
 		
 		int sum = 0;
 		// Group percentage
-		for (File f : editedFiles) {
-			int length = (int) f.length();
+		for (Path f : editedFiles) {
+			int length = (int) f.toFile().length();
 			sum += length;
 			progress[i] = length;
 			i++;

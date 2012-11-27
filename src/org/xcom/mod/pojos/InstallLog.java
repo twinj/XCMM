@@ -22,14 +22,13 @@ public class InstallLog extends ModConfig implements Serializable {
 	public final static String EDITED_FILES = "EditedFiles";
 
 	private final Date installed = new Date();
-	protected List<String> editedFilePaths;
 
 	public InstallLog() {
 	}
 
 	public InstallLog(String name, String author, String description,
 			List<String> editedFilePaths, List<String> originalFilePaths) {
-		super(name, author, description, editedFilePaths);
+		super(name, author, description, originalFilePaths, editedFilePaths);
 		this.originalFilePaths = originalFilePaths;
 
 	}
