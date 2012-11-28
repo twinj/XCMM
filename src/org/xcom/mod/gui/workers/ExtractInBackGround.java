@@ -1,5 +1,6 @@
 package org.xcom.mod.gui.workers;
 
+import java.awt.Component;
 import java.awt.Cursor;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -17,30 +18,35 @@ public class ExtractInBackGround extends SwingWorker<Void, Void> {
 	
 	private List<Path> decomFiles = new ArrayList<>();
 	private JComponent src = null;
+	private Component parent = null;
 	
-	public ExtractInBackGround(Path decomFile) {
+	public ExtractInBackGround(Path decomFile, Component parent) {
 		super();
 		this.decomFiles.add(decomFile);
+		this.parent  = parent;
 	}
 	
-	public ExtractInBackGround(List<Path> decomFiles) {
+	public ExtractInBackGround(List<Path> decomFiles, Component parent) {
 		super();
 		this.decomFiles = decomFiles;
+		this.parent  = parent;
 	}
 	
-	public ExtractInBackGround(List<Path> decomFiles, JComponent src) {
-		this(decomFiles);
+	public ExtractInBackGround(List<Path> decomFiles, JComponent src, Component parent) {
+		this(decomFiles, parent);
 		this.src = src;
 	}
 	
-	public ExtractInBackGround(Path decomFile, JComponent src) {
-		this(decomFile);
+	public ExtractInBackGround(Path decomFile, JComponent src, Component parent) {
+		this(decomFile, parent);
 		this.src = src;
 	}
 	
 	@Override
 	protected Void doInBackground() {
-		XCMGUI.getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		if (parent !=null) {
+			parent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		}
 
 		if (src != null) {
 			src.setEnabled(false);
@@ -54,7 +60,9 @@ public class ExtractInBackGround extends SwingWorker<Void, Void> {
 	@Override
 	protected void done() {
 		try {
-			XCMGUI.getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			if (parent !=null) {
+				parent.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			}
 			if (src != null) {
 				src.setEnabled(true);
 			}

@@ -635,7 +635,7 @@ public class XCMGUI extends Main {
 					try {
 						extractWithToolCheck(file.toPath(),
 								Paths.get("tools", "extract.exe"), (JComponent) e.getSource(),
-								true);
+								true, getFrame());
 					} catch (DownloadFailedException ex) {
 						JOptionPane.showMessageDialog(getFrame(), "The download failed...",
 								"Error", JOptionPane.ERROR_MESSAGE);
@@ -2219,11 +2219,12 @@ public class XCMGUI extends Main {
 	 * @param extract
 	 * @param upkToExtract
 	 * @param src
+	 * @param parent 
 	 * @throws DownloadFailedException
 	 * @throws ZipException
 	 */
 	public static void extractWithToolCheck(final Path upkToExtract,
-			final Path extract, final JComponent src, Boolean inBackGround)
+			final Path extract, final JComponent src, Boolean inBackGround, Component parent)
 			throws DownloadFailedException, ZipException {
 		
 		if (Files.notExists(extract)) {
@@ -2240,7 +2241,7 @@ public class XCMGUI extends Main {
 			Main.unZip(zip, Paths.get("tools"));
 		}
 		if (inBackGround) {
-			new ExtractInBackGround(upkToExtract, src).execute();
+			new ExtractInBackGround(upkToExtract, src, parent).execute();
 		} else Main.extract(upkToExtract);
 		
 	}

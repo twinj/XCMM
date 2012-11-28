@@ -63,6 +63,7 @@ public class SettingsDialog extends JDialog {
 	private JTextField textFieldExtractor;
 	
 	private SettingsDialog THIS = this;
+	private JButton close;
 	
 	public SettingsDialog(final Config config) {
 		addComponentListener(new ComponentAdapter() {
@@ -72,183 +73,36 @@ public class SettingsDialog extends JDialog {
 				textFieldInstall.setText(config.getXcomPath());
 				textFieldUnpacked.setText(config.getUnpackedPath());
 				textFieldDecompressor.setText(config.getCompressorPath());
-				textFieldExtractor.setText(config.getExtractorPath());	
+				textFieldExtractor.setText(config.getExtractorPath());
 				setLocationRelativeTo(XCMGUI.getFrame());
 			}
 		});
 		setMinimumSize(new Dimension(275, 275));
-		setResizable(false);		
+		setResizable(false);
 		
 		initUI();
-
+		
 	}
 	
 	public final void initUI() {
 		
-		getContentPane().setLayout(
-				new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
+		getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 		
 		setModalityType(ModalityType.APPLICATION_MODAL);
 		
 		setTitle("XCMM Config Settings");
 		
-		JPanel themeTab = new JPanel();
-		themeTab.setVisible(false);
-		getContentPane().add(themeTab);
-		themeTab.setEnabled(false);
-		themeTab.setBorder(new TitledBorder(null, "", TitledBorder.LEADING,
-				TitledBorder.TOP, null, null));
-		
-		JRadioButton rdbtnNewRadioButton_1 = new JRadioButton("System default");
-		rdbtnNewRadioButton_1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				
-				try {
-					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-				} catch (ClassNotFoundException | InstantiationException
-						| IllegalAccessException | UnsupportedLookAndFeelException ex) {
-					ex.printStackTrace(System.err);
-				}
-				
-				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				SwingUtilities.updateComponentTreeUI(THIS);			
-				XCMGUI.getFrame().pack();
-			}
-			
-		});
-		themeButtonGroup.add(rdbtnNewRadioButton_1);
-		
-		JRadioButton rdbtnNewRadioButton_2 = new JRadioButton("Lipstik - Default");
-		rdbtnNewRadioButton_2.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				
-				try {
-					UIManager.setLookAndFeel("com.lipstikLF.LipstikLookAndFeel");
-				} catch (ClassNotFoundException | InstantiationException
-						| IllegalAccessException | UnsupportedLookAndFeelException ex) {
-					ex.printStackTrace(System.err);
-				}
-				
-				LipstikLookAndFeel.setMyCurrentTheme(new DefaultTheme());
-				
-				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				SwingUtilities.updateComponentTreeUI(THIS);
-				
-				XCMGUI.getFrame().pack();
-			}
-		});
-		themeButtonGroup.add(rdbtnNewRadioButton_2);
-		
-		JRadioButton rdbtnNewRadioButton = new JRadioButton("Lipstik - Light grey");
-		rdbtnNewRadioButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				
-				try {
-					UIManager.setLookAndFeel("com.lipstikLF.LipstikLookAndFeel");
-				} catch (ClassNotFoundException | InstantiationException
-						| IllegalAccessException | UnsupportedLookAndFeelException ex) {
-					ex.printStackTrace(System.err);
-				}
-				
-				LipstikLookAndFeel.setMyCurrentTheme(new LightGrayTheme());
-				
-				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				SwingUtilities.updateComponentTreeUI(THIS);
-				
-				XCMGUI.getFrame().pack();
-			}
-		});
-		themeButtonGroup.add(rdbtnNewRadioButton);
-		
-		JRadioButton rdbtnNewRadioButton_3 = new JRadioButton(
-				"Lipstik - Klearlooks");
-		rdbtnNewRadioButton_3.setSelected(true);
-		rdbtnNewRadioButton_3.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				
-				try {
-					UIManager.setLookAndFeel("com.lipstikLF.LipstikLookAndFeel");
-				} catch (ClassNotFoundException | InstantiationException
-						| IllegalAccessException | UnsupportedLookAndFeelException ex) {
-					ex.printStackTrace(System.err);
-				}
-				LipstikLookAndFeel.setMyCurrentTheme(new KlearlooksTheme());
-				
-				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
-				SwingUtilities.updateComponentTreeUI(THIS);
-				
-				XCMGUI.getFrame().pack();
-			}
-		});
-		themeButtonGroup.add(rdbtnNewRadioButton_3);
-		
-		JButton btnNewButton = new JButton("Ok");
-		btnNewButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				dispose();
-			}
-		});
-		GroupLayout gl_themeTab = new GroupLayout(themeTab);
-		gl_themeTab.setHorizontalGroup(gl_themeTab.createParallelGroup(
-				Alignment.TRAILING).addGroup(
-				gl_themeTab
-						.createSequentialGroup()
-						.addContainerGap(6, Short.MAX_VALUE)
-						.addGroup(
-								gl_themeTab
-										.createParallelGroup(Alignment.LEADING)
-										.addGroup(
-												gl_themeTab
-														.createSequentialGroup()
-														.addGroup(
-																gl_themeTab
-																		.createParallelGroup(Alignment.LEADING)
-																		.addComponent(rdbtnNewRadioButton_1)
-																		.addGroup(
-																				gl_themeTab
-																						.createSequentialGroup()
-																						.addGroup(
-																								gl_themeTab
-																										.createParallelGroup(
-																												Alignment.LEADING)
-																										.addComponent(
-																												rdbtnNewRadioButton_3)
-																										.addComponent(
-																												rdbtnNewRadioButton_2)
-																										.addComponent(
-																												rdbtnNewRadioButton))
-																						.addGap(72))).addGap(72))
-										.addGroup(
-												Alignment.TRAILING,
-												gl_themeTab.createSequentialGroup()
-														.addComponent(btnNewButton).addContainerGap()))));
-		gl_themeTab.setVerticalGroup(gl_themeTab.createParallelGroup(
-				Alignment.LEADING).addGroup(
-				Alignment.TRAILING,
-				gl_themeTab.createSequentialGroup()
-						.addContainerGap(42, Short.MAX_VALUE)
-						.addComponent(rdbtnNewRadioButton_1)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(rdbtnNewRadioButton_2)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(rdbtnNewRadioButton_3)
-						.addPreferredGap(ComponentPlacement.RELATED)
-						.addComponent(rdbtnNewRadioButton).addGap(46)
-						.addComponent(btnNewButton).addGap(21)));
-		themeTab.setLayout(gl_themeTab);
-
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		getContentPane().add(tabbedPane);
 		
 		JPanel generalTab = new JPanel();
 		tabbedPane.addTab("General", null, generalTab, null);
 		generalTab.setPreferredSize(new Dimension(400, 300));
-		generalTab.setBorder(new TitledBorder(UIManager
-				.getBorder("TitledBorder.border"), "", TitledBorder.LEADING,
-				TitledBorder.TOP, null, null));
+		generalTab.setBorder(new TitledBorder(UIManager.getBorder("TitledBorder.border"), "",
+					TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		generalTab.setLayout(null);
 		
-		JButton close = new JButton("Cancel");
+		close = new JButton("Cancel");
 		close.setBounds(167, 183, 89, 23);
 		generalTab.add(close);
 		close.addActionListener(new ActionListener() {
@@ -350,8 +204,7 @@ public class SettingsDialog extends JDialog {
 		horizontalBox.setAlignmentX(0.0f);
 		toolsTab.add(horizontalBox);
 		
-		JLabel lblUnrealPackageDecompresor = new JLabel(
-				"Unreal Package Decompresor:");
+		JLabel lblUnrealPackageDecompresor = new JLabel("Unreal Package Decompresor:");
 		lblUnrealPackageDecompresor.setHorizontalAlignment(SwingConstants.LEFT);
 		horizontalBox.add(lblUnrealPackageDecompresor);
 		
@@ -429,6 +282,154 @@ public class SettingsDialog extends JDialog {
 		button_2.addActionListener(new SaveAction());
 		button_2.setBounds(10, 183, 89, 23);
 		toolsTab.add(button_2);
+		
+		JPanel themeTab = new JPanel();
+		tabbedPane.addTab("Themes", null, themeTab, null);
+		tabbedPane.setEnabledAt(2, false);
+		themeTab.setVisible(false);
+		themeTab.setEnabled(false);
+		themeTab.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP,
+					null, null));
+		
+		JRadioButton rdbtnNewRadioButton_1 = new JRadioButton("System default");
+		rdbtnNewRadioButton_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				try {
+					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+				} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+							| UnsupportedLookAndFeelException ex) {
+					ex.printStackTrace(System.err);
+				}
+				
+				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
+				SwingUtilities.updateComponentTreeUI(THIS);
+				XCMGUI.getFrame().pack();
+			}
+			
+		});
+		themeButtonGroup.add(rdbtnNewRadioButton_1);
+		
+		JRadioButton rdbtnNewRadioButton_2 = new JRadioButton("Lipstik - Default");
+		rdbtnNewRadioButton_2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				try {
+					UIManager.setLookAndFeel("com.lipstikLF.LipstikLookAndFeel");
+				} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+							| UnsupportedLookAndFeelException ex) {
+					ex.printStackTrace(System.err);
+				}
+				
+				LipstikLookAndFeel.setMyCurrentTheme(new DefaultTheme());
+				
+				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
+				SwingUtilities.updateComponentTreeUI(THIS);
+				
+				XCMGUI.getFrame().pack();
+			}
+		});
+		themeButtonGroup.add(rdbtnNewRadioButton_2);
+		
+		JRadioButton rdbtnNewRadioButton = new JRadioButton("Lipstik - Light grey");
+		rdbtnNewRadioButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				try {
+					UIManager.setLookAndFeel("com.lipstikLF.LipstikLookAndFeel");
+				} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+							| UnsupportedLookAndFeelException ex) {
+					ex.printStackTrace(System.err);
+				}
+				
+				LipstikLookAndFeel.setMyCurrentTheme(new LightGrayTheme());
+				
+				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
+				SwingUtilities.updateComponentTreeUI(THIS);
+				
+				XCMGUI.getFrame().pack();
+			}
+		});
+		themeButtonGroup.add(rdbtnNewRadioButton);
+		
+		JRadioButton rdbtnNewRadioButton_3 = new JRadioButton("Lipstik - Klearlooks");
+		rdbtnNewRadioButton_3.setSelected(true);
+		rdbtnNewRadioButton_3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				try {
+					UIManager.setLookAndFeel("com.lipstikLF.LipstikLookAndFeel");
+				} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+							| UnsupportedLookAndFeelException ex) {
+					ex.printStackTrace(System.err);
+				}
+				LipstikLookAndFeel.setMyCurrentTheme(new KlearlooksTheme());
+				
+				SwingUtilities.updateComponentTreeUI(XCMGUI.getFrame());
+				SwingUtilities.updateComponentTreeUI(THIS);
+				
+				XCMGUI.getFrame().pack();
+			}
+		});
+		themeButtonGroup.add(rdbtnNewRadioButton_3);
+		
+		JButton btnNewButton = new JButton("Ok");
+		btnNewButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				dispose();
+			}
+		});
+		GroupLayout gl_themeTab = new GroupLayout(themeTab);
+		gl_themeTab
+					.setHorizontalGroup(gl_themeTab
+								.createParallelGroup(Alignment.TRAILING)
+								.addGroup(
+											gl_themeTab
+														.createSequentialGroup()
+														.addContainerGap(6, Short.MAX_VALUE)
+														.addGroup(
+																	gl_themeTab
+																				.createParallelGroup(Alignment.LEADING)
+																				.addGroup(
+																							gl_themeTab
+																										.createSequentialGroup()
+																										.addGroup(
+																													gl_themeTab
+																																.createParallelGroup(
+																																			Alignment.LEADING)
+																																.addComponent(
+																																			rdbtnNewRadioButton_1)
+																																.addGroup(
+																																			gl_themeTab
+																																						.createSequentialGroup()
+																																						.addGroup(
+																																									gl_themeTab
+																																												.createParallelGroup(
+																																															Alignment.LEADING)
+																																												.addComponent(
+																																															rdbtnNewRadioButton_3)
+																																												.addComponent(
+																																															rdbtnNewRadioButton_2)
+																																												.addComponent(
+																																															rdbtnNewRadioButton))
+																																						.addGap(72)))
+																										.addGap(72)).addGroup(
+																							Alignment.TRAILING,
+																							gl_themeTab.createSequentialGroup()
+																										.addComponent(btnNewButton)
+																										.addContainerGap()))));
+		gl_themeTab.setVerticalGroup(gl_themeTab.createParallelGroup(Alignment.LEADING)
+					.addGroup(
+								Alignment.TRAILING,
+								gl_themeTab.createSequentialGroup().addContainerGap(42, Short.MAX_VALUE)
+											.addComponent(rdbtnNewRadioButton_1).addPreferredGap(
+														ComponentPlacement.RELATED).addComponent(
+														rdbtnNewRadioButton_2).addPreferredGap(
+														ComponentPlacement.RELATED).addComponent(
+														rdbtnNewRadioButton_3).addPreferredGap(
+														ComponentPlacement.RELATED).addComponent(rdbtnNewRadioButton)
+											.addGap(46).addComponent(btnNewButton).addGap(21)));
+		themeTab.setLayout(gl_themeTab);
 		browseButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser fc = new JFileChooser();
@@ -469,7 +470,7 @@ public class SettingsDialog extends JDialog {
 	 */
 	class SaveAction implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
-			JComponent src = (JComponent) e.getSource();
+			JComponent src = (JButton) e.getSource();
 			
 			final Config config = XCMGUI.getConfig();
 			
@@ -479,8 +480,7 @@ public class SettingsDialog extends JDialog {
 			final String compressorPath = textFieldDecompressor.getText();
 			final String extractorPath = textFieldExtractor.getText();
 			
-			final Path cookedCore = Paths.get(config.getCookedPath().toString(),
-					"Core.upk");
+			final Path cookedCore = Paths.get(config.getCookedPath().toString(), "Core.upk");
 			
 			Boolean isOk = true;
 			
@@ -507,13 +507,12 @@ public class SettingsDialog extends JDialog {
 				msg = "Name field cannot be 'unknown'.";
 				
 			} else if (Files.notExists(Paths.get(compressorPath))
-					|| Files.notExists(Paths.get(extractorPath))) {
+						|| Files.notExists(Paths.get(extractorPath))) {
 				
 				boolean yes = false;
 				
 				try {
-					yes = getToolsToPerformInitialVerification(unpackedPath, cookedCore,
-							src);
+					yes = getToolsToPerformInitialVerification(unpackedPath, cookedCore, src);
 				} catch (HeadlessException | MalformedURLException ignore) {
 					ignore.printStackTrace(System.err);
 				}
@@ -521,7 +520,7 @@ public class SettingsDialog extends JDialog {
 					msg = "You need to select a valid path for Gildor's tools.";
 				} else {
 					msg = null;
-				}				
+				}
 			} else if (!Main.isUnPackedPathValid(unpackedPath)) {
 				
 				if (Files.isDirectory(Paths.get(unpackedPath))) {
@@ -529,10 +528,10 @@ public class SettingsDialog extends JDialog {
 					try {
 						if (!Main.isDecompressed(cookedCore)) {
 							int n = JOptionPane
-									.showConfirmDialog(
-											THIS,
-											"Would you like to unpack the core upk file here to verify the current path?",
-											"Unpack Core.upk", JOptionPane.YES_NO_OPTION);
+										.showConfirmDialog(
+													THIS,
+													"Would you like to unpack the core upk file here to verify the current path?",
+													"Unpack Core.upk", JOptionPane.YES_NO_OPTION);
 							
 							switch (n) {
 								case JOptionPane.YES_OPTION :
@@ -543,9 +542,9 @@ public class SettingsDialog extends JDialog {
 										dib.get();
 									} catch (InterruptedException | ExecutionException ignore) {
 										ignore.printStackTrace(); // already handled
+										break;
 									}
-									new ExtractInBackGround(Paths.get(unpackedPath, "Core.upk"))
-											.execute();
+									new ExtractInBackGround(cookedCore, THIS).execute();
 									
 									break;
 							}
@@ -553,9 +552,8 @@ public class SettingsDialog extends JDialog {
 							isOk = true;
 						} else {
 							msg = "Your Core.upk is already decompressed. Unpacking now.";
-							
-							new ExtractInBackGround(Paths.get(unpackedPath, "Core.upk"))
-									.execute();
+							isOk = true;
+							new ExtractInBackGround(cookedCore, THIS).execute();
 						}
 					} catch (HeadlessException | IOException ignore) {
 						ignore.printStackTrace(System.err);
@@ -591,6 +589,9 @@ public class SettingsDialog extends JDialog {
 			if (msg != null) {
 				JOptionPane.showMessageDialog(getContentPane(), msg, title, op);
 			}
+			if (!isOk) {
+				src.dispatchEvent(e);
+			}
 		}
 		/**
 		 * 
@@ -600,19 +601,19 @@ public class SettingsDialog extends JDialog {
 		 * @throws HeadlessException
 		 * @throws MalformedURLException
 		 */
-		public boolean getToolsToPerformInitialVerification(
-				final String unpackedPath, final Path cookedCore, final JComponent src)
-				throws HeadlessException, MalformedURLException {
+		public boolean getToolsToPerformInitialVerification(final String unpackedPath,
+					final Path cookedCore, final JComponent src) throws HeadlessException,
+					MalformedURLException {
 			
 			final Path decompress = Paths.get("tools\\decompress.exe");
 			final Path extract = Paths.get("tools\\extract.exe");
 			final Path upkToExtract = Paths.get(unpackedPath, "Core.upk");
 			
 			int n1 = JOptionPane
-					.showConfirmDialog(
-							THIS,
-							"To get started you need to download Gildor's tools or select a working path.\nWould you like to download?",
-							"Download Gildor's tools?", JOptionPane.YES_NO_OPTION);
+						.showConfirmDialog(
+									THIS,
+									"To get started you need to download Gildor's tools or select a working path.\nWould you like to download?",
+									"Download Gildor's tools?", JOptionPane.YES_NO_OPTION);
 			
 			switch (n1) {
 				case JOptionPane.YES_OPTION :
@@ -622,10 +623,11 @@ public class SettingsDialog extends JDialog {
 							if (src != null) {
 								src.setEnabled(false);
 							}
+							close.setEnabled(false);
 							THIS.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 							Main.openDesktopBrowser("http://www.gildor.org/");
 							XCMGUI.decompressWithToolCheck(cookedCore, decompress, true);
-							XCMGUI.extractWithToolCheck(upkToExtract, extract, null, true);
+							XCMGUI.extractWithToolCheck(upkToExtract, extract, null, true, THIS);
 							
 							return null;
 						}
@@ -640,6 +642,7 @@ public class SettingsDialog extends JDialog {
 							if (src != null) {
 								src.setEnabled(true);
 							}
+							close.setEnabled(true);
 						}
 					}.execute();
 					break;

@@ -49,9 +49,7 @@ public class XCMConsole extends Main {
 	
 	// MAIN ENTRY POINT
 	public static void main(String[] args) {
-		
-		print("STARTED", "");
-		
+
 		// Marshal helpers and Algorithms
 		try {
 			md = MessageDigest.getInstance(MHash.ALGORITHM);
@@ -90,16 +88,15 @@ public class XCMConsole extends Main {
 				}
 			} else {
 				config = new Config();
-				print("CONFIG FILE NOT FOUND CREATING DEFAULT.", "");
 			}
 		} catch (ConfigFileException e) {
 			e.printStackTrace(System.err);
-			System.exit(Error.CONFIG_FILE_GET_ERROR.ordinal());
+			exit(Error.CONFIG_FILE_GET_ERROR);
 		}
 		
 		if (args.length == 0) {
 			printUsage();
-			System.exit(Error.NOTHING.ordinal());
+			exit(Error.NOTHING);
 		}
 		
 		if (args.length != 0) {
@@ -482,8 +479,8 @@ public class XCMConsole extends Main {
 	 */
 	protected static void printUsage() {
 		
-		print(MAIN_DELEGATE, "(([-i] | [-m]) (XMod Name)) | (-g)\n", "\tE.g:\t",
-				MAIN_DELEGATE, "-i GenderRatioMod\n", "\t\t", MAIN_DELEGATE, "-g");
+		print(SYSTEM_NAME, "(([-i] | [-m]) (XMod Name)) | (-g)\n", "\tE.g:\t",
+				SYSTEM_NAME, " -i ModEst1999\n", "\t\t", SYSTEM_NAME, " -g");
 	}
 	
 	@Override
