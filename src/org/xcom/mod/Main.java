@@ -6,12 +6,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.ProcessBuilder.Redirect;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,6 +43,8 @@ import org.xcom.mod.tools.xshape.MHash;
 import org.xcom.mod.tools.xshape.XShape;
 
 public abstract class Main implements Runnable {
+	
+	public static final Charset DEFAULT_FILE_ENCODING = Charset.forName("UTF-8");
 	
 	public enum Error {
 		
@@ -75,15 +79,17 @@ public abstract class Main implements Runnable {
 		XSHA_UPK_FILE_COMPRESSED("Cooked *.upk file still compressed."), //
 		XSHA_HASH_GET_ERROR("Could not calculate SHA hash."), //
 		XSHA_MOD_ACCESS_ERROR("Could not access file."), //
+		XSHA_UPK_FILENAME_ERROR("Could not find upk filename. Please report this error."), //
+		XSHA_PATCH_NOT_REQUIRED("Pacthing was not required."), //
 		
 		DEFAULT("THERE WAS AN ERROR"); //
 		
 		private final String msg;
 		
-		Error(String msg) {		
+		Error(String msg) {
 			this.msg = String.format(("Error [%s] " + msg), this.ordinal());
-		}	
-		public String getMsg() {			
+		}
+		public String getMsg() {
 			return msg;
 		}
 	}
@@ -91,11 +97,13 @@ public abstract class Main implements Runnable {
 	protected Error ERROR;
 	
 	public final static String CONSOLE_SEPARATOR = "**************************"
-			+ "*******************************" + "*******************************";
+				+ "*******************************" + "*******************************";
 	public final static String SYSTEM_NAME = "XCMM";
 	public final static String MAIN_DELEGATE = "";
 	public final static String MAKE_DELEGATE = "";
 	public final static String INSTALL_DELEGATE = "";
+	public final static String ERROR_DELEGATE = "";
+
 	
 	public final static String INVOKE_GUI = "-g";
 	public final static String INVOKE_MAKE = "-m";
@@ -103,12 +111,12 @@ public abstract class Main implements Runnable {
 	public final static String INVOKE_XSHAPE = "-x";
 	
 	protected final static String RELATIVE_EXE_PATH = "\\Binaries\\Win32\\XComGame.exe";
-	protected final static String COMPRESSED_UPK_EXT = ".uncompressed_size";
+	protected final static String COMPRESSED_UPK_SIZE_EXT = ".uncompressed_size";
 	protected final static String RELATIVE_TOC_PATH = "\\XComGame\\PCConsoleTOC.txt";
-	private final static String UNPACKED_HEADER = "C1832A9E4D033B";
+	private final static String UNPACKED_HEADER = "C1832A9E4D033B"; // C1 83 2A 9E
+																																	// 4D 03 3B
 	
-	protected final static int NUM_CPU = (Runtime.getRuntime()
-			.availableProcessors());
+	protected final static int NUM_CPU = (Runtime.getRuntime().availableProcessors());
 	
 	protected static Config config;
 	protected static MessageDigest md;
@@ -119,7 +127,8 @@ public abstract class Main implements Runnable {
 	public static Stream MAIN = Stream.getStream(MAIN_DELEGATE);
 	public static Stream MAKE = Stream.getStream(MAKE_DELEGATE);
 	public static Stream INSTALL = Stream.getStream(INSTALL_DELEGATE);
-	
+	public static Stream ERR = Stream.getErrorStream(ERROR_DELEGATE);
+
 	protected final static String USER_DIR = System.getProperty("user.dir");
 	
 	@SuppressWarnings("rawtypes")
@@ -154,10 +163,10 @@ public abstract class Main implements Runnable {
 	 */
 	public static boolean isUnPackedPathValid(String path) {
 		
-		return Files.exists(Paths.get(path, "Core", "Component",
-				"TemplateName.NameProperty"));
+		return Files
+					.exists(Paths.get(path, "Core", "Component", "TemplateName.NameProperty"));
 	}
-
+	
 	/**
 	 * Appends complex msg to console. Add new line.
 	 * 
@@ -201,8 +210,7 @@ public abstract class Main implements Runnable {
 	 * @param editedFiles
 	 * @return true if all matched
 	 */
-	public static boolean fileNamesMatch(List<Path> originalFiles,
-			List<Path> editedFiles) {
+	public static boolean fileNamesMatch(List<Path> originalFiles, List<Path> editedFiles) {
 		
 		for (Path o : originalFiles) {
 			boolean matched = false;
@@ -300,10 +308,10 @@ public abstract class Main implements Runnable {
 	 * @throws XmlPrintException
 	 */
 	public static void printXml(java.io.PrintStream os, ModXml xml, String msg)
-			throws XmlPrintException {
+				throws XmlPrintException {
 		
 		print(os, CONSOLE_SEPARATOR + "\n" + xml.getPrintName()
-				+ (msg != "" ? " " + msg : " XML\n"));
+					+ (msg != "" ? " " + msg : " XML\n"));
 		try {
 			m.marshal(xml, os);
 		} catch (JAXBException e) {
@@ -321,7 +329,7 @@ public abstract class Main implements Runnable {
 	 * @throws CopyFileException
 	 */
 	public static void copyFile(Path from, Path to, Boolean replaceExisting)
-			throws CopyFileException {
+				throws CopyFileException {
 		
 		if (Files.notExists(from)) {
 			throw new CopyFileException("FileNotFoundException,notExists");
@@ -348,10 +356,10 @@ public abstract class Main implements Runnable {
 		} catch (IOException e) {
 			throw new CopyFileException("IOException.copy");
 		}
-		print("COPIED [" + from.getFileName(), "] FROM [" + from.getParent(),
-				"] TO [" + to.getParent(), "]");
+		print("COPIED [" + from.getFileName(), "] FROM [" + from.getParent(), "] TO ["
+					+ to.getParent(), "]");
 	}
-
+	
 	/**
 	 * Returns whether a upk file is compressed or not.
 	 * 
@@ -363,12 +371,12 @@ public abstract class Main implements Runnable {
 		
 		Boolean ret = true;
 		try (InputStream fis = Files.newInputStream(p)) {
-			final byte[] bHeader = MHash.hexStringToBytes(UNPACKED_HEADER);
-			final byte[] bArray = new byte[bHeader.length];
-			fis.read(bArray);
+			final byte[] header = MHash.hexStringGetBytes(UNPACKED_HEADER);
+			final byte[] barray = new byte[header.length];
+			fis.read(barray);
 			
-			for (int i = bArray.length - 1; i >= 0; --i) {
-				if (bArray[i] != bHeader[i]) {
+			for (int i = barray.length - 1; i >= 0; --i) {
+				if (barray[i] != header[i]) {
 					ret = false;
 				}
 			}
@@ -379,13 +387,22 @@ public abstract class Main implements Runnable {
 	}
 	
 	/**
-	 * Uncompresses a file in a new process: however this method WAITS.
+	 * DO NOT USE THIS FOR HASH
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static byte[] getBytes(final String s) {
+		return s.getBytes(Main.DEFAULT_FILE_ENCODING);
+	}
+	
+	/**
+	 * Uncompresses a file in a new process: this method WAITS.
 	 * 
 	 * @param p
 	 */
 	public static void decompress(Path p) {
-		final String unpacked = Paths.get(XShape.getConfig().getUnpackedPath())
-				.toString();
+		final String unpacked = Paths.get(XShape.getConfig().getUnpackedPath()).toString();
 		final String fileToDecompress = p.toAbsolutePath().toString();
 		final String fileName = p.getFileName().toString();
 		
@@ -393,8 +410,8 @@ public abstract class Main implements Runnable {
 		final String tool = Paths.get(config.getCompressorPath()).toAbsolutePath().toString();
 		
 		// The only way this works is with a SINGLE string
-		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked + "\" \""
-				+ fileToDecompress + "\"");
+		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked
+					+ "\" \"" + fileToDecompress + "\"");
 		
 		Process proc;
 		
@@ -424,18 +441,17 @@ public abstract class Main implements Runnable {
 	 */
 	public static void extract(Path p) {
 		
-		final String unpacked = Paths.get(XShape.getConfig().getUnpackedPath())
-				.toString();
+		final String unpacked = Paths.get(XShape.getConfig().getUnpackedPath()).toString();
 		final String fileToUnpack = p.toAbsolutePath().toString();
 		final String fileName = p.getFileName().toString();
 		
 		final String tool = Paths.get(config.getExtractorPath()).toAbsolutePath().toString();
-
+		
 		final File log = new File("log");
 		
 		// The only way this works is with a SINGLE string
-		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked + "\" \""
-				+ fileToUnpack + "\"");
+		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked
+					+ "\" \"" + fileToUnpack + "\"");
 		
 		Process proc;
 		
@@ -466,8 +482,10 @@ public abstract class Main implements Runnable {
 	 */
 	public static void sortGameFiles(Path p) throws IOException {
 		
-		final String unpacked = Paths.get(XShape.getConfig().getUnpackedPath())
-				.toString();
+		final String unpacked = Paths.get(getConfig().getUnpackedPath()).toAbsolutePath()
+					.toString();
+		final String cooked = getConfig().getCookedPath().toAbsolutePath().toString();
+		
 		final String fileToDecompress = p.toAbsolutePath().toString();
 		final String fileName = p.getFileName().toString();
 		
@@ -478,23 +496,21 @@ public abstract class Main implements Runnable {
 				print("SORTING FILE [" + fileName, "]");
 				
 				Path original = Paths.get(fileToDecompress);
-				Path originalMoveTo = Paths.get(unpacked, fileName
-						+ ".original_compressed");
-				final String cooked = XShape.getConfig().getCookedPath().toString();
+				Path originalBackup = Paths.get(unpacked, fileName + ".original_compressed");
 				
-				Files.move(original, originalMoveTo);
-				print("MOVING [" + original, "] TO [" + originalMoveTo, "]");
+				Files.move(original, originalBackup, StandardCopyOption.REPLACE_EXISTING);
+				print("MOVING [" + original, "] TO [" + originalBackup, "]");
 				
-				Files.copy(uncomp, original);
+				Files.copy(uncomp, original, StandardCopyOption.REPLACE_EXISTING);
 				print("MOVING [" + uncomp, "] TO [" + original, "]");
 				
-				Path compSize = Paths.get(cooked, fileName + ".uncompressed_size");
-				Path compSizeBkp = Paths.get(unpacked, fileName
-						+ ".uncompressed_size.bkp");
+				Path compSize = Paths.get(cooked, fileName + COMPRESSED_UPK_SIZE_EXT);
+				Path compSizeBkp = Paths
+							.get(unpacked, fileName + COMPRESSED_UPK_SIZE_EXT + ".bkp");
+				
 				if (Files.exists(compSize)) {
-					Files.move(compSize, compSizeBkp);
-					print("MOVING [" + compSize, "uncompressed_size] TO [" + compSizeBkp
-							+ "]");
+					Files.move(compSize, compSizeBkp, StandardCopyOption.REPLACE_EXISTING);
+					print("MOVING [" + compSize, "] TO [" + compSizeBkp + "]");
 				}
 			} catch (IOException ex) {
 				throw new IOException();
@@ -512,8 +528,7 @@ public abstract class Main implements Runnable {
 	 * 
 	 * @throws DownloadFailedException
 	 */
-	public static Path download(String saveAs, URL down)
-			throws DownloadFailedException {
+	public static Path download(String saveAs, URL down) throws DownloadFailedException {
 		Path temp = Paths.get("temp");
 		try {
 			if (Files.notExists(temp)) {
@@ -528,7 +543,7 @@ public abstract class Main implements Runnable {
 		}
 		
 		try (ReadableByteChannel rbc = Channels.newChannel(down.openStream());
-				FileOutputStream fos = new FileOutputStream(temp.toString())) {
+					FileOutputStream fos = new FileOutputStream(temp.toString())) {
 			
 			fos.getChannel().transferFrom(rbc, 0, 1 << 24);
 			
@@ -579,7 +594,7 @@ public abstract class Main implements Runnable {
 				}
 			}
 			try (InputStream is = zip.getInputStream(entry);
-					OutputStream os = new FileOutputStream(f)) {
+						OutputStream os = new FileOutputStream(f)) {
 				
 				int r;
 				byte buffer[] = new byte[BUFFER];
@@ -601,8 +616,7 @@ public abstract class Main implements Runnable {
 	 * 
 	 * @param url
 	 */
-	public static void openDesktopBrowser(String url)
-			throws MalformedURLException {
+	public static void openDesktopBrowser(String url) throws MalformedURLException {
 		if (Desktop.isDesktopSupported()) {
 			
 			try {

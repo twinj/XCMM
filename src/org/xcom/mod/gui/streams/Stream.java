@@ -29,4 +29,8 @@ public class Stream extends PrintStream {
 	public static Stream getStream(String delegate) {
 		return new Stream(delegate, System.out);
 	}
+	
+	public static Stream getErrorStream(String delegate) {
+		return new Stream(delegate, System.err);
+	}
 }

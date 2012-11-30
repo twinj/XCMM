@@ -15,6 +15,7 @@ package org.xcom.mod.tools.xshape;
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -23,33 +24,54 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
+import javax.xml.bind.DatatypeConverter;
+
 import org.xcom.mod.Main;
+import org.xcom.mod.gui.streams.Stream;
 import org.xcom.mod.gui.workers.DecompressInBackGround;
-import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
+import org.xcom.mod.tools.ByteScannerChannel;
+import org.xcom.mod.tools.ByteScannerChannel.Eol;
 import org.xcom.mod.tools.exceptions.UpkFileNotDecompressedException;
+import org.xcom.mod.tools.maker.exceptions.ProcessFileChangesException;
 import org.xcom.mod.tools.xshape.exceptions.CalculateHashException;
+import org.xcom.mod.tools.xshape.exceptions.IniFileException;
+import org.xcom.mod.tools.xshape.exceptions.IvalildUpkFileNameToPatch;
+import org.xcom.mod.tools.xshape.exceptions.PatchNotRequired;
 
 /**
  * @author Anthony Surma
  */
 public class XShape extends Main {
 	
-	final static String VERSION = "2.0a";
+	final static String VERSION = "2.0d";
 	final static String CONFIG = "XSHAPE.config";
-	final static String PERIOD = "\\.";
 	final static int SEPARATOR = 0x00;
-	final static int BUFFERPAD = 100;
+	static long START_POSITION = 26420592; // location after 0x0d0a before
+																					// rcdata 1020 512KB buffer
+																					// after
+	
+	static long END_POSITION = 26557951; // location after 0x0d0a before
+	// rcdata 1020 512KB buffer
+	// after
+	private static Stream STREAM = MAIN;
 	
 	private List<Path> paths;
 	private Path toPatch;
+	private Path ini;
 	
-	public XShape(Path toPatch, List<Path> paths) {
+	/**
+	 * 
+	 * @param toPatch
+	 * @param paths
+	 * @param stream
+	 * @throws IOException
+	 */
+	public XShape(Path toPatch, List<Path> paths, Stream stream) throws IOException {
 		
 		super();
 		this.toPatch = toPatch;
@@ -63,12 +85,75 @@ public class XShape extends Main {
 				cleanPaths.add(p);
 			}
 		}
+		STREAM = stream;
 		this.paths = cleanPaths;
+		
+		print("CREATING A SESSION BACKUP", "");
+		
+		Files.copy(toPatch, Paths.get("temp", toPatch.getFileName().toString()),
+					StandardCopyOption.REPLACE_EXISTING);
+		
 	}
+	
+	/**
+	 * 
+	 * @param toPatch
+	 * @param ini
+	 * @param stream
+	 * @throws IOException
+	 */
+	public XShape(Path toPatch, Path ini, Stream stream) throws IOException {
+		
+		super();
+		this.toPatch = toPatch;
+		// This list requires duplicates before this however now they are
+		// redundant and need to be trimmed for clean patching
+		
+		this.ini = ini;
+		STREAM = stream;
+		
+		print("CREATING A SESSION BACKUP", "");
+		
+		Files.copy(toPatch, Paths.get("temp", toPatch.getFileName().toString()),
+					StandardCopyOption.REPLACE_EXISTING);
+		
+	}
+	
+	/**
+	 * 
+	 * @param toPatch
+	 * @param paths
+	 * @param stream
+	 * @param startByteOffset
+	 * @throws IOException
+	 */
+	public XShape(Path toPatch, List<Path> paths, Stream stream, long startByteOffset)
+				throws IOException {
+		this(toPatch, paths, stream);
+		START_POSITION = startByteOffset;
+	}
+	
+	/**
+	 * 
+	 * @param toPatch
+	 * @param ini
+	 * @param stream
+	 * @param startByteOffset
+	 * @throws IOException
+	 */
+	public XShape(Path toPatch, Path ini, Stream stream, long startByteOffset)
+				throws IOException {
+		this(toPatch, ini, stream);
+		START_POSITION = startByteOffset;
+	}
+	
 	@Override
 	public void run() {
 		
 		printActionMessage("XSHAPE");
+		print(CONSOLE_SEPARATOR, "");
+		
+		int numPatched = 0;
 		
 		try {
 			List<Path> uncompressedFiles = new ArrayList<>();
@@ -85,8 +170,17 @@ public class XShape extends Main {
 			}
 			
 			if (work == null || work.isDone()) {
-				startPatching(toPatch, new Vector<MHash>(MHash.calculateHashes(paths)),
-						getSync());
+				numPatched = patchExeUpkHash(toPatch, new Vector<MHash>(MHash
+							.calculateHashes(paths)), START_POSITION, END_POSITION);
+				
+				final int numFiles = paths.size();
+				
+				if (numFiles != numPatched) {
+					print("[" + (numFiles - numPatched), "] HASH NOT UPDATED.");
+					print("[" + numPatched, "] FILE(S) HASH UPDATED.");
+				} else {
+					print("[" + numPatched, "] FILE(S) HASH UPDATED.");
+				}
 			} else {
 				throw new UpkFileNotDecompressedException();
 			}
@@ -99,6 +193,12 @@ public class XShape extends Main {
 		} catch (UpkFileNotDecompressedException ex) {
 			ERROR = Error.XSHA_UPK_FILE_COMPRESSED;
 			ex.printStackTrace(System.err);
+		} catch (IvalildUpkFileNameToPatch ex) {
+			ERROR = Error.XSHA_UPK_FILENAME_ERROR;
+			ex.printStackTrace(System.err);
+		} catch (PatchNotRequired ex) {
+			ERROR = Error.XSHA_PATCH_NOT_REQUIRED;
+			ex.printStackTrace(System.err);
 		}
 		
 		setDone(true);
@@ -110,9 +210,11 @@ public class XShape extends Main {
 	 * @throws CalculateHashException
 	 * @throws UpkFileNotDecompressedException
 	 * @throws IOException
+	 * @throws IvalildUpkFileNameToPatch
+	 * @throws PatchNotRequired
 	 */
-	public void runc() throws CalculateHashException,
-			UpkFileNotDecompressedException, IOException {
+	public void runc() throws CalculateHashException, UpkFileNotDecompressedException,
+				IOException, IvalildUpkFileNameToPatch, PatchNotRequired {
 		
 		printActionMessage("XSHAPE");
 		
@@ -122,132 +224,180 @@ public class XShape extends Main {
 				sortGameFiles(p);
 			}
 		}
-		startPatching(toPatch, new Vector<MHash>(MHash.calculateHashes(paths)),
-				getSync());
+		patchExeUpkHash(toPatch, new Vector<MHash>(MHash.calculateHashes(paths)),
+					START_POSITION, END_POSITION);
 	}
 	
 	/**
 	 * 
 	 * @param sync
 	 * @throws IOException
+	 * @throws IvalildUpkFileNameToPatch
+	 * @throws PatchNotRequired
 	 */
-	@SuppressWarnings("rawtypes")
-	static void startPatching(Path toPatch, Vector<MHash> hashes,
-			SyncProgress sync) throws IOException {
+	static int patchExeUpkHash(Path toPatch, Vector<MHash> hashes, long startByteOffset,
+				long endByteOffset) throws IOException, IvalildUpkFileNameToPatch,
+				PatchNotRequired {
 		
-		int numFiles = hashes.size();
-		int numFound = 0;
+		int numPatched = 0;
 		
-		if (sync != null) {
-			sync.plusProgress(1 * numFiles);
-		}
-		
-		print("CREATING A SESSION BACKUP");
-		
-		Files.copy(toPatch, Paths.get("temp", toPatch.getFileName().toString()),
-				StandardCopyOption.REPLACE_EXISTING);
-		
-		try (FileChannel fc = FileChannel.open(toPatch, StandardOpenOption.READ,
-				StandardOpenOption.WRITE); FileLock lock = fc.tryLock()) {
+		try (ByteScannerChannel sc = new ByteScannerChannel(toPatch);
+					FileChannel ch = sc.getChannel();
+					FileLock lock = ch.tryLock()) {
 			
-			final long startAtByteNum = 20000000;
-			final int bufferSize = (int) (fc.size() - startAtByteNum + BUFFERPAD);
-			ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+			// Shorten buffer
+			final int bufferSize = (int) (endByteOffset - startByteOffset);
+			
+			ByteBuffer buffer = ByteBuffer.wrap(new byte[bufferSize]);
+			
+			ch.read(buffer, startByteOffset);
 			
 			// Output to console
-			print("[" + fc.size(), "] BYTES IN [" + toPatch.getFileName(), "]");
-			print("STARTING AT OFFSET [" + startAtByteNum, "]");
-			print("BUFFER SIZE [" + bufferSize, "]");
-			
-			fc.position(startAtByteNum);
-			fc.read(buffer);
-			
-			// fileSum - size; inconsequential to original algorithm
-			int progressStart = (99 - (numFiles * 2));
-			int progressAllocation = progressStart / numFiles;
-			int progressPlusRate = bufferSize / progressAllocation;
+			print("STARTING AT OFFSET [" + startByteOffset, "]");
+			print("ENDING AT OFFSET [" + endByteOffset, "]");
+			print("BUFFER SIZE [" + bufferSize / 1000.0, " KB]");
 			
 			// For each file and its hash try
 			for (MHash hash : hashes) {
 				
-				int p = progressPlusRate;
-				int position = 1;
+				String search = hash.getPathFileName().toLowerCase();
 				
-				final String lowerCaseFileName = hash.getPathFileName().toLowerCase();
-				print("SEARCHING FOR ENTRY [", lowerCaseFileName, "] AS BYTES [",
-						MHash.toPrintString(hash.getFileNameBytes()), "]");
-				
-				// Loop buffer from start to end of buffer
-				while (buffer.hasRemaining()) {
-					ByteBuffer fileName = ByteBuffer.wrap(hash.getFileNameBytes());
-					
-					// find current file name in lowercase as a byte array
-					while (fileName.hasRemaining()) {
-						if (buffer.get() == fileName.get()) {} else {
-							break;
-						}
-					}
-					if (!fileName.hasRemaining() && buffer.get() == SEPARATOR) {
-						print(
-								"FILE ENTRY [",
-								lowerCaseFileName,
-								"] AT OFFSET ["
-										+ (buffer.position() - fileName.limit() + startAtByteNum - 1),
-								"]");
-						
-						buffer.mark();
-						byte[] foundHash = new byte[MHash.HASH_OUTPUT];
-						buffer.get(foundHash, 0, MHash.HASH_OUTPUT);
-						buffer.reset();
-						
-						print("EXE HASH [", MHash.toPrintString(foundHash), "]");
-						print("UPK HASH [", hash.toPrintString(), "]");
-						
-						// Write new hashes
-						if (!Arrays.equals(hash.getHash(), foundHash)) {
-							fc.position(startAtByteNum + buffer.position());
-							fc.write(ByteBuffer.wrap(hash.getHash()));
-							print("UPDATED [" + lowerCaseFileName, "] EXE HASH");
-						}
-						++numFound;
-						if (sync != null) {
-							// check progress
-							sync.plusProgress(p);
-						}
-						break;
-					} else {
-						buffer.position(position++);
-					}
-					
-					if (sync != null) {
-						// check progress
-						if (buffer.position() % progressPlusRate == 0) {
-							sync.plusProgress(1);
-							p--;
-						}
-					}
-					if (numFound == numFiles) {
-						break;
-					}
-				}
 				buffer.rewind();
+				byte[] fileName = hash.getFileNameBytes();
+				
+				print("SEARCHING FOR ENTRY [", search, "] AS BYTES [", MHash
+							.toPrintString(fileName), "] IN [" + toPatch.getFileName(), "]");
+				
+				// find current file name in lowercase as a byte array
+				if (sc.findBytes(buffer, fileName) != -1 && buffer.get() == SEPARATOR) {
+					
+					byte[] foundHash = new byte[MHash.HASH_OUTPUT];
+					
+					print("ENTRY FOUND AT OFFSET ["
+								+ (buffer.position() - fileName.length + startByteOffset - 1), "]");
+					
+					buffer.mark();
+					buffer.get(foundHash);
+					buffer.reset();
+					
+					print("EXE HASH [", MHash.toPrintString(foundHash), "]");
+					print("UPK HASH [", hash.toPrintString(), "]");
+					
+					// Write new hashes
+					if (!Arrays.equals(hash.getHash(), foundHash)) {
+						ch.position(startByteOffset + buffer.position());
+						ch.write(ByteBuffer.wrap(hash.getHash()));
+						print("UPDATED [" + search, "] EXE HASH");
+						++numPatched;
+					}
+				} else {
+					throw new IvalildUpkFileNameToPatch();
+				}
 			}
-			
 		} finally {
 			
 			// Check and report errors
-			if (numFound != numFiles) {
-				return;
-				
-			} else if (numFound == 0) print("NO CHANGES NEED TO BE MADE.", "");
-			else {
-				print("[" + numFound, "] SHA HASH(ES) UPDATED.");
+			if (numPatched == 0) {
+				print("PATCHING NOT REQUIRED.", "");
+				throw new PatchNotRequired();
 			}
 		}
+		return numPatched;
 	}
 	
+	public void patchIni() {
+		try {
+			patchExeResourceFromIni(toPatch, ini, START_POSITION, END_POSITION);
+		} catch (FileNotFoundException ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+		} catch (IniFileException ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+		} catch (IOException ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+		}
+	}
+	/**
+	 * 
+	 * @param sync
+	 * @throws IOException
+	 * @throws IvalildUpkFileNameToPatch
+	 * @throws PatchNotRequired
+	 * @throws IniFileException
+	 * @throws FileNotFoundException
+	 */
+	static void patchExeResourceFromIni(Path toPatch, Path ini, long startByteOffset,
+				long endByteOffset) throws IniFileException, FileNotFoundException, IOException {
+		
+		String search = "[XComGame.";// XGTacticalGameCore]";
+		byte[] header = search.getBytes(Main.DEFAULT_FILE_ENCODING);
+		byte[] END_PAD = new byte[]{
+					0x0D, 0x0A, 0x50, 0x41, 0x44
+		};
+		
+		byte[] bytes = null;
+		try {
+			bytes = Files.readAllBytes(ini);
+		} catch (IOException e) {
+			throw new IniFileException("IOException,readAllBytes");
+		}
+		
+		try (ByteScannerChannel sc = new ByteScannerChannel(toPatch);
+					FileChannel ch = sc.getChannel();
+					FileLock lock = ch.tryLock()) {
+			
+			// Shorten buffer go to new line
+			final int bufferSize = (int) (endByteOffset - startByteOffset);
+			ByteBuffer buffer = ByteBuffer.wrap(new byte[bufferSize]);
+			ch.read(buffer, startByteOffset);
+			
+			// Output to console
+			print("STARTING AT OFFSET [" + startByteOffset, "]");
+			print("ENDING AT OFFSET [" + endByteOffset, "]");
+			print("BUFFER SIZE [" + bufferSize / 1000.0, " KB]");
+			
+			buffer.rewind();
+			
+			print("SEARCHING FOR RESOURCE HEADER [", search, "] AS BYTES [", MHash
+						.toPrintString(header), "] IN [" + toPatch.getFileName(), "]");
+			
+			long sPos = sc.findBytes(buffer, header);
+			long ePos = -1;
+			
+			// find current file name in lowercase as a byte array
+			if (sPos != -1) {
+				
+				buffer.position((int) sPos + header.length); // + 1 so as to step ahead
+																											// not to reread search
+																											// pattern
+				
+				// do a -2 to go back to 0x0d0a
+				print("ENTRY FOUND AT OFFSET [" + (sPos + startByteOffset), "]");
+				
+				ePos = sc.findBytes(buffer, header);
+				buffer.position((int) ePos + header.length);
+				ePos = sc.findBytes(buffer, header);
+				
+				print("END FOUND AT OFFSET [" + (ePos + startByteOffset), "]");
+				
+				buffer.position((int) (ePos -2)); // -2 so as to start at 0x0d0a
+				
+				byte[] eof = new byte[(int) (ch.size() - buffer.position() - startByteOffset)];
+				sc.seek(startByteOffset + ePos - 2);
+				sc.readFully(eof);
+				sc.seek(startByteOffset + sPos - 2);			
+				sc.write(bytes);
+				sc.write(eof);
+				
+			}
+		} finally {
+			
+		}
+	}
 	private static void print(String... strings) {
 		
-		print(MAIN, strings);
+		print(STREAM, strings);
 	}
 }

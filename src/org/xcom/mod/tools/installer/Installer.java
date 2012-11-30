@@ -246,14 +246,14 @@ final public class Installer extends Main {
 			try (FileChannel fc = FileChannel.open(upkFile, StandardOpenOption.READ,
 					StandardOpenOption.WRITE); FileLock lock = fc.tryLock()) {
 				started = true;
-				ByteBuffer buffer = ByteBuffer.allocate((int) fc.size()
-						+ f.getSearchHashLength());
+				ByteBuffer buffer = ByteBuffer.allocate((int) (fc.size()
+						+ f.getSearchHashLength()));
 				
 				print(INSTALL, Main.CONSOLE_SEPARATOR, "");
 				print(INSTALL, "SEARCHING [" + upkFile.getFileName(),
 						"] FOR RESOURCE [", f.getResName(), "]");
-				print("WITH BYTE SUM [" + f.getByteSum(), "]");
-				print("AND HASH [", MHash.toPrintString(f.getSearchHash()), "]");
+				print("WITH CHECKSUM [" + f.getCheckSum(), "]");
+				print("WITH HASH [", MHash.toPrintString(f.getSearchHash()), "]");
 				
 				fc.read(buffer);
 				

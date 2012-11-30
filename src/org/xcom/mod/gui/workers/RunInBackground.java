@@ -43,25 +43,16 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 		if (src != null) {
 			src.setEnabled(false);
 		}
-		
-		// Thread joinable = new Thread(main);
-		// joinable.start();
-		// setProgress(1);
 		main.run();
-		
-		// while (sync.getProgress() < 100 && !main.getDone() && !isCancelled()) {
-		// // Sleep for up to one second.
-		// setProgress(Math.min(sync.getProgress(), 100));
-		// Thread.sleep(random.nextInt(2000));
-		// }
+	
 		return (T) main.getRet();
 	}
 	
 	@Override
 	protected void done() {
-		Toolkit.getDefaultToolkit().beep();
 		T ret = null;
-		
+		Toolkit.getDefaultToolkit().beep();
+
 		try {
 			ret = get();
 		} catch (InterruptedException | ExecutionException ex) {
@@ -69,8 +60,7 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 		}
 		
 		Error e = main.getError();
-		
-		// setProgress(Math.min(100, 100));
+			
 		after(e, ret);
 		parent.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		if (src != null) {

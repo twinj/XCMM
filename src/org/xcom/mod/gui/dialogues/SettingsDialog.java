@@ -572,25 +572,21 @@ public class SettingsDialog extends JDialog {
 				msg = "The settings have been updated.";
 				title = "Settings saved.";
 				op = JOptionPane.PLAIN_MESSAGE;
-				
-				config.setAuthor(name);
-				config.setUnpackedPath(unpackedPath);
-				config.setXcomPath(xComPath);
-				
-				try {
-					Main.saveXml(config);
-				} catch (XmlSaveException ex) {
-					msg = "There was an error saving the settings file. Try again. Check for OS permissions.";
-					title = "Settings not saved.";
-					ex.printStackTrace(System.err);
-				}
-				dispose();
 			}
+			config.setAuthor(name);
+			config.setUnpackedPath(unpackedPath);
+			config.setXcomPath(xComPath);
+			
+			try {
+				Main.saveXml(config);
+			} catch (XmlSaveException ex) {
+				msg = "There was an error saving the settings file. Try again. Check for OS permissions.";
+				title = "Settings not saved.";
+				ex.printStackTrace(System.err);
+			}
+			dispose();
 			if (msg != null) {
 				JOptionPane.showMessageDialog(getContentPane(), msg, title, op);
-			}
-			if (!isOk) {
-				src.dispatchEvent(e);
 			}
 		}
 		/**

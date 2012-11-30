@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 @Table(name = "modfile", catalog = "xmodstore", schema = "")
 @XmlRootElement(name = "ResFile")
 @XmlType(propOrder = {
-		"id", "resName", "upkFilename", "byteSum", "searchHashLength",
+		"id", "resName", "upkFilename", "checkSum", "searchHashLength",
 		"searchHash", "changes", "XMod"
 })
 @NamedQueries({
@@ -31,7 +31,7 @@ import javax.xml.bind.annotation.XmlType;
 		@NamedQuery(name = "ResFile.findById", query = "SELECT r FROM ResFile r WHERE r.id = :id"),
 		@NamedQuery(name = "ResFile.findByUpkFilename", query = "SELECT r FROM ResFile r WHERE r.upkFilename = :upkFilename"),
 		@NamedQuery(name = "ResFile.findBySearchHashLength", query = "SELECT r FROM ResFile r WHERE r.searchHashLength = :searchHashLength"),
-		@NamedQuery(name = "ResFile.findByByteSum", query = "SELECT r FROM ResFile r WHERE r.byteSum = :byteSum")
+		@NamedQuery(name = "ResFile.findByCheckSum", query = "SELECT r FROM ResFile r WHERE r.checkSum = :checkSum")
 })
 public class ResFile implements Serializable, ModXml {
 	private static final long serialVersionUID = 1L;
@@ -54,8 +54,8 @@ public class ResFile implements Serializable, ModXml {
 	private int searchHashLength;
 	
 	@Basic(optional = false)
-	@Column(name = "byteSum")
-	private int byteSum;
+	@Column(name = "checkSum")
+	private int checkSum;
 	
 	@Basic(optional = false)
 	@Lob
@@ -87,7 +87,7 @@ public class ResFile implements Serializable, ModXml {
 		this.upkFilename = filename;
 		this.searchHash = searchHash;
 		this.searchHashLength = hashLength;
-		this.byteSum = sum;
+		this.checkSum = sum;
 	}
 	
 	@XmlAttribute(name = "Id")
@@ -135,13 +135,13 @@ public class ResFile implements Serializable, ModXml {
 		this.searchHashLength = hashLength;
 	}
 	
-	@XmlElement(name = "ByteSum")
-	public int getByteSum() {
-		return byteSum;
+	@XmlElement(name = "CheckSum")
+	public int getCheckSum() {
+		return checkSum;
 	}
 	
-	public void setByteSum(int sum) {
-		this.byteSum = sum;
+	public void setCheckSum(int sum) {
+		this.checkSum = sum;
 	}
 	
 	// @XmlElement(name = "IsInstalled")

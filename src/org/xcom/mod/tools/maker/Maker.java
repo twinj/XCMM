@@ -20,7 +20,6 @@ package org.xcom.mod.tools.maker;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -259,7 +258,7 @@ final public class Maker extends Main {
 					"] FROM [" + upkFileName + "]");
 			print("SEARCH HASH [", hash.toPrintString(), "]");
 			
-			final int sum = getDataSum(originalResource);
+			final long sum = getResourceCheckSum(originalResource);
 			
 			if (sync != null) {
 				sync.plusProgress(1);
@@ -269,7 +268,7 @@ final public class Maker extends Main {
 			try {
 				f = new ResFile(null, originalResource.getFileName().toString(),
 						upkFileName, hash.toString(), (int) Files.size(originalResource),
-						sum);
+						(int) sum);
 				if (sync != null) {
 					sync.plusProgress(1);
 				}
@@ -299,7 +298,7 @@ final public class Maker extends Main {
 	 * @throws ProcessFileChangesException
 	 * 
 	 */
-	static int getDataSum(Path path) throws ProcessFileChangesException {
+	static int getResourceCheckSum(Path path) throws ProcessFileChangesException {
 		int sum = 0;
 		byte[] bytes = null;
 		try {
@@ -307,13 +306,11 @@ final public class Maker extends Main {
 		} catch (IOException e) {
 			throw new ProcessFileChangesException("IOException,readAllBytes");
 		}
-		
-		ByteBuffer buffer = ByteBuffer.wrap(bytes);
-		
-		while (buffer.hasRemaining()) {
-			sum += buffer.get() & 0xFF;
+				
+		for (int i=0; i < bytes.length; i++) {
+			sum += bytes[i] & 0xFF;
 		}
-		print("BYTE SUM [" + sum, "]");
+		print("RESOURCE CHECKSUM [" + sum, "]");
 		return sum;
 	}
 	

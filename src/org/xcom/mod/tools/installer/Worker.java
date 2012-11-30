@@ -79,8 +79,8 @@ final public class Worker implements Runnable {
 		final int hashDataLength = mod.getSearchHashLength();
 		final int end = this.end - hashDataLength;
 		
-		final long targetSum = mod.getByteSum();
-		final byte[] searchHash = MHash.hexStringToBytes(mod.getSearchHash());
+		final int targetSum = mod.getCheckSum();
+		final byte[] searchHash = MHash.hexStringGetBytes(mod.getSearchHash());
 		
 		String work = "...";
 		
@@ -119,7 +119,7 @@ final public class Worker implements Runnable {
 					final byte[] hash = md.digest(bufferSegmt);
 					
 					if (Arrays.equals(hash, searchHash)) {
-						print("FOUND - BYTE SUM & HASH MATCH");
+						print("FOUND - CHECKSUM & HASH MATCH");
 						
 						for (final HexEdit c : mod.getChanges()) {
 							print("BUFFER OFFSET [" + c.getOffset(),

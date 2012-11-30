@@ -261,7 +261,7 @@ public class XCMConsole extends Main {
 				for (String line : configLines) {
 					
 					if (Files.notExists(Paths.get(config.getCookedPath().toString(),
-							line, COMPRESSED_UPK_EXT))) {} else {
+							line, COMPRESSED_UPK_SIZE_EXT))) {} else {
 						configLines.remove(line);
 					}
 				}
@@ -299,7 +299,12 @@ public class XCMConsole extends Main {
 				Paths.get(fileName);
 			}
 			
-			new Thread(new XShape(exeFile, paths)).start();
+			try {
+				new Thread(new XShape(exeFile, paths, MAIN)).start();
+			} catch (IOException ex) {
+				// TODO Auto-generated catch block
+				ex.printStackTrace();
+			}
 			
 		} else {
 			printUsage();

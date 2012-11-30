@@ -71,6 +71,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 			} catch (IOException ex) {
 				errorOrganisingFiles();
 				ex.printStackTrace(System.err);
+				return;
 			}
 		}
 		decompressionComplete();
@@ -90,7 +91,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 	
 	protected void errorOrganisingFiles() {
 		JOptionPane.showMessageDialog(XCMGUI.getFrame(),
-				"There was an IO error when sorint out the game resources.",
+				"There was an IO error when modifying the game resources.",
 				"Game file handler", JOptionPane.ERROR_MESSAGE);
 	}
 }

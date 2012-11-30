@@ -11,37 +11,38 @@ import java.util.List;
 
 import javax.xml.bind.DatatypeConverter;
 
+import org.xcom.mod.Main;
 import org.xcom.mod.tools.xshape.exceptions.CalculateHashException;
 
 final public class MHash {
-
+	
 	private static final int DEFAULT_BUFFER = 8096;
 	public static final String ALGORITHM = "SHA";
 	public static final int HASH_OUTPUT = 20;
 	public static final String TEMP = "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00";
-
+	
 	private Path path;
 	private byte[] fileNameAsBytes;
 	private byte[] hash;
 	private static MessageDigest md;
-
+	
 	/**
 	 * Creates a normal data construct for a MHash
 	 * 
 	 * @param path
 	 * @param hash
-	 * @throws CalculateHashException 
+	 * @throws CalculateHashException
 	 */
 	public MHash(Path path, byte[] hash) throws CalculateHashException {
 		this(path);
 		this.hash = hash;
 	}
-
+	
 	/**
 	 * Generates hash information and hash.
 	 * 
 	 * @param path
-	 * @throws CalculateHashException 
+	 * @throws CalculateHashException
 	 */
 	public MHash(final Path path) throws CalculateHashException {
 		super();
@@ -55,36 +56,37 @@ final public class MHash {
 		this.fileNameAsBytes = getPathFileName().toLowerCase().getBytes();
 		hash = calculateHash(path);
 	}
-
+	
 	/**
 	 * Will calculate hashes for a list of paths.
-	 *
-	 * @throws CalculateHashException 
+	 * 
+	 * @throws CalculateHashException
 	 * 
 	 */
-	public static List<MHash> calculateHashes(List<Path> paths) throws CalculateHashException {
-
+	public static List<MHash> calculateHashes(List<Path> paths)
+				throws CalculateHashException {
+		
 		List<MHash> hashes = new ArrayList<MHash>();
-
+		
 		for (Path path : paths) {
 			hashes.add(new MHash(path));
 		}
 		return hashes;
 	}
-
+	
 	/**
 	 * Calculates an SHA hash for the input Path.
 	 * 
 	 * @param path
 	 * @return a byte array of size 20.. will only work for SHA output.
-	 * @throws CalculateHashException 
+	 * @throws CalculateHashException
 	 */
 	public static byte[] calculateHash(Path path) throws CalculateHashException {
-
+		
 		byte[] dataBytes = new byte[DEFAULT_BUFFER];
 		byte[] hash = new byte[HASH_OUTPUT];
 		int numRead = 0;
-
+		
 		try (InputStream is = Files.newInputStream(path)) {
 			while ((numRead = is.read(dataBytes)) > 0) {
 				md.update(dataBytes, 0, numRead);
@@ -95,18 +97,18 @@ final public class MHash {
 		} finally {
 			if (md != null) {
 				md.reset();
-			}			
+			}
 		}
 		return hash;
 	}
-
+	
 	/**
 	 * Get hash of file at file path
 	 * 
 	 * @param path
 	 * 
 	 * @return hash string
-	 * @throws CalculateHashException 
+	 * @throws CalculateHashException
 	 */
 	public static String getHashString(Path path) throws CalculateHashException {
 		return new MHash(path).toString();
@@ -118,12 +120,12 @@ final public class MHash {
 	 * @param path
 	 * 
 	 * @return hash string
-	 * @throws CalculateHashException 
+	 * @throws CalculateHashException
 	 */
 	public static String getHashPrintString(Path path) throws CalculateHashException {
 		return new MHash(path).toPrintString();
 	}
-
+	
 	/**
 	 * Returns a hash byte array as a hex string
 	 * 
@@ -132,12 +134,10 @@ final public class MHash {
 	 * @return String
 	 */
 	public static String toString(byte[] hash) {
-		StringBuilder result = new StringBuilder(HASH_OUTPUT*2);
+		StringBuilder result = new StringBuilder(HASH_OUTPUT * 2);
 		for (byte b : hash) {
-			String hexString = Integer.toHexString((int) b & 0xff)
-					.toUpperCase();
-			if (hexString.length() == 1)
-				result.append("0");
+			String hexString = Integer.toHexString((int) b & 0xff).toUpperCase();
+			if (hexString.length() == 1) result.append("0");
 			result.append(hexString);
 		}
 		return result.toString();
@@ -151,12 +151,10 @@ final public class MHash {
 	 * @return String
 	 */
 	public static String toPrintString(byte[] hash) {
-		StringBuilder result = new StringBuilder(HASH_OUTPUT*3);
+		StringBuilder result = new StringBuilder(HASH_OUTPUT * 3);
 		for (byte b : hash) {
-			String hexString = Integer.toHexString((int) b & 0xff)
-					.toUpperCase();
-			if (hexString.length() == 1)
-				result.append("0");
+			String hexString = Integer.toHexString((int) b & 0xff).toUpperCase();
+			if (hexString.length() == 1) result.append("0");
 			result.append(hexString).append(" ");
 		}
 		return result.toString();
@@ -170,9 +168,9 @@ final public class MHash {
 	 * @return String
 	 */
 	public static String toPrintString(String hash) {
-		StringBuilder result = new StringBuilder(HASH_OUTPUT*3);
+		StringBuilder result = new StringBuilder(HASH_OUTPUT * 3);
 		int i = 1;
-		for (char c : hash.toCharArray()) {			
+		for (char c : hash.toCharArray()) {
 			result.append(c);
 			if (i % 2 == 0) {
 				result.append(" ");
@@ -187,10 +185,10 @@ final public class MHash {
 	 * @param s
 	 * @return
 	 */
-	public static byte[] hexStringToBytes(final String s) {
+	public static byte[] hexStringGetBytes(final String s) {
 		return DatatypeConverter.parseHexBinary(s);
 	}
-
+	
 	/**
 	 * Returns a hash byte array as a hex string
 	 * 
@@ -213,23 +211,23 @@ final public class MHash {
 	public String toPrintString() {
 		return toPrintString(hash);
 	}
-
+	
 	public Path getPath() {
 		return path;
 	}
-
+	
 	public byte[] getHash() {
 		return hash;
 	}
-
+	
 	public String getHashString() {
 		return hash.toString();
 	}
-
+	
 	public byte[] getFileNameBytes() {
 		return fileNameAsBytes;
 	}
-
+	
 	public String getPathFileName() {
 		return path.getFileName().toString();
 	}
