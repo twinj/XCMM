@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<XModConfig>
+    <Name>ModEst1999v1</Name>
+    <Author>Drakous79 / DaemonJax / twinj</Author>
+    <Description>Changes the start year to 1999. The same year XCom classic was based on. Also changes the chance that a new rookie soldier is a woman. Because women were tougher in the 90's. Changes the chance from 33% to 50%.</Description>
+    <OriginalFiles>
+        <Path>XComGame\XGCharacterGenerator\CreateTSoldier.Function</Path>
+        <Path>XComStrategyGame\XGDateTime\IsFirstDay.Function</Path>
+        <Path>XComStrategyGame\XGFundingCouncil\CreateMission.Function</Path>
+        <Path>XComStrategyGame\XGGeoscape\InitNewGame.Function</Path>
+        <Path>XComStrategyGame\XGStrategyAI\InitNewGame.Function</Path>
+    </OriginalFiles>
+    <EditedFiles>
+        <Path>C:\Sample Only\CreateTSoldier.Function</Path>
+        <Path>C:\Sample Only\Desktop\New folder\IsFirstDay.Function</Path>
+        <Path>C:\Sample Only\Desktop\New folder\CreateMission.Function</Path>
+        <Path>C:\Sample Only\Desktop\New folder\InitNewGame.Function</Path>
+        <Path>C:\Sample Only\Desktop\New folder\InitNewGame XGStrategyAI.Function</Path>
+    </EditedFiles>
+</XModConfig>
