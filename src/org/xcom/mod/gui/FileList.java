@@ -14,6 +14,7 @@ import javax.swing.event.ListDataEvent;
 import javax.swing.event.ListDataListener;
 
 
+
 /**
  * This code uses a JList in two forms (layout orientation vertical & horizontal
  * wrap) to display a File[]. The renderer displays the file icon obtained from

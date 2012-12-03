@@ -25,8 +25,8 @@ import javax.swing.filechooser.FileSystemView;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 
+import org.xcom.main.shared.entities.Config;
 import org.xcom.mod.gui.JFileTree.FileTreeNode;
-import org.xcom.mod.pojos.Config;
 
 /**
  * @author Kirill Grouchnikov

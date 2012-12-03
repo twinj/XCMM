@@ -32,18 +32,15 @@ import java.util.concurrent.CountDownLatch;
 
 import javax.xml.bind.JAXBException;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.exceptions.XmlSaveException;
-import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
-import org.xcom.mod.pojos.InstallLog;
-import org.xcom.mod.pojos.ResFile;
-import org.xcom.mod.pojos.XMod;
-import org.xcom.mod.tools.exceptions.ExportFileAccessException;
-import org.xcom.mod.tools.exceptions.UpkFileAccessException;
-import org.xcom.mod.tools.exceptions.UpkFileNotDecompressedException;
-import org.xcom.mod.tools.exceptions.UpkResourceNotFoundException;
-import org.xcom.mod.tools.installer.exceptions.SearchInterruptedException;
-import org.xcom.mod.tools.installer.exceptions.UpkFileNotFoundException;
+import org.xcom.main.shared.Main;
+import org.xcom.main.shared.XmlSaveException;
+import org.xcom.main.shared.entities.InstallLog;
+import org.xcom.main.shared.entities.ResFile;
+import org.xcom.main.shared.entities.XMod;
+import org.xcom.mod.tools.shared.ExportFileAccessException;
+import org.xcom.mod.tools.shared.UpkFileAccessException;
+import org.xcom.mod.tools.shared.UpkFileNotDecompressedException;
+import org.xcom.mod.tools.shared.UpkResourceNotFoundException;
 import org.xcom.mod.tools.xshape.MHash;
 
 /**
@@ -92,19 +89,18 @@ final public class Installer extends Main {
 			
 			List<ResFile> out = null;
 			
-			out = makeUPKChanges(files, new Vector<Path>(upkFiles), getSync());
+			out = makeUPKChanges(files, new Vector<Path>(upkFiles));
 			
 			installPackage.setResFiles(out);
 			// TODO MAY HAVE TO INCLUDE SOME OF FULL INSTALL CHECK SO CAN
 			// ROLLBACK
 			installPackage.setIsInstalled(true);
-			InstallLog log = new InstallLog(installPackage.getName(),
-					installPackage.getAuthor(), installPackage.getDescription(), null,
-					null);
+			InstallLog log = new InstallLog(installPackage.getName(), installPackage
+						.getAuthor(), installPackage.getDescription(), null, null);
 			saveXml(log);
 			printXml(log);
 			
-		} catch (UpkFileNotDecompressedException e) {			
+		} catch (UpkFileNotDecompressedException e) {
 			ERROR = Error.INS_UPK_FILE_COMPRESSED;
 			ret = e.getFiles();
 			e.printStackTrace(System.err);
@@ -140,9 +136,8 @@ final public class Installer extends Main {
 	 * @throws JAXBException
 	 */
 	public void runc() throws UpkFileNotFoundException, UpkFileAccessException,
-			UpkFileNotDecompressedException, ExportFileAccessException,
-			SearchInterruptedException, UpkResourceNotFoundException,
-			XmlSaveException {
+				UpkFileNotDecompressedException, ExportFileAccessException,
+				SearchInterruptedException, UpkResourceNotFoundException, XmlSaveException {
 		printActionMessage("INSTALL");
 		
 		try {
@@ -157,15 +152,15 @@ final public class Installer extends Main {
 		
 		upkFiles = findResourceUpkFile(files);
 		
-		List<ResFile> out = makeUPKChanges(files, new Vector<Path>(upkFiles), getSync());
+		List<ResFile> out = makeUPKChanges(files, new Vector<Path>(upkFiles));
 		
 		// TODO MAY HAVE TO INCLUDE SOME OF FULL INSTALL CHECK SO CAN
 		// ROLLBACK
 		
 		installPackage.setResFiles(out);
 		installPackage.setIsInstalled(true);
-		InstallLog log = new InstallLog(installPackage.getName(),
-				installPackage.getAuthor(), installPackage.getDescription(), null, null);
+		InstallLog log = new InstallLog(installPackage.getName(), installPackage.getAuthor(),
+					installPackage.getDescription(), null, null);
 		saveXml(log);
 		printXml(log);
 	}
@@ -179,8 +174,8 @@ final public class Installer extends Main {
 	 * @throws UpkFileNotFoundException
 	 */
 	static List<Path> findResourceUpkFile(List<ResFile> files)
-			throws UpkFileNotDecompressedException, UpkFileNotFoundException,
-			UpkFileAccessException {
+				throws UpkFileNotDecompressedException, UpkFileNotFoundException,
+				UpkFileAccessException {
 		
 		List<Path> upkFiles = new Vector<Path>(files.size());
 		List<Path> uncFiles = new Vector<Path>(files.size());
@@ -192,7 +187,7 @@ final public class Installer extends Main {
 			
 			if (Files.notExists(path)) {
 				print("CANNOT FIND UPK [" + path.getFileName(), "]");
-				throw new UpkFileNotFoundException();				
+				throw new UpkFileNotFoundException();
 			}
 			try {
 				if (!Files.isWritable(path)) {
@@ -225,17 +220,12 @@ final public class Installer extends Main {
 	 * 
 	 * @return
 	 */
-	@SuppressWarnings("rawtypes")
-	static List<ResFile> makeUPKChanges(List<ResFile> files,
-			Vector<Path> upkFiles, SyncProgress sync)
-			throws UpkResourceNotFoundException, UpkFileAccessException,
-			SearchInterruptedException {
+	static List<ResFile> makeUPKChanges(List<ResFile> files, Vector<Path> upkFiles) throws UpkResourceNotFoundException, UpkFileAccessException,
+				SearchInterruptedException {
 		
 		print("INSTALLING RESOURCE CHANGES", "");
 		Worker[] workers = new Worker[numWorkers];
 		Thread[] threads = new Thread[numWorkers];
-		
-		float[] progress = calculateWorkProgress(files, upkFiles, numWorkers);
 		
 		int i = 0;
 		for (ResFile f : files) {
@@ -244,22 +234,22 @@ final public class Installer extends Main {
 			Boolean started = false;
 			
 			try (FileChannel fc = FileChannel.open(upkFile, StandardOpenOption.READ,
-					StandardOpenOption.WRITE); FileLock lock = fc.tryLock()) {
+						StandardOpenOption.WRITE);
+						FileLock lock = fc.tryLock()) {
 				started = true;
-				ByteBuffer buffer = ByteBuffer.allocate((int) (fc.size()
-						+ f.getSearchHashLength()));
+				ByteBuffer buffer = ByteBuffer.allocate((int) (fc.size() + f
+							.getSearchHashLength()));
 				
-				print(INSTALL, Main.CONSOLE_SEPARATOR, "");
-				print(INSTALL, "SEARCHING [" + upkFile.getFileName(),
-						"] FOR RESOURCE [", f.getResName(), "]");
+				print(INSTALL, CONSOLE_SEPARATOR, "");
+				print(INSTALL, "SEARCHING [" + upkFile.getFileName(), "] FOR RESOURCE [", f
+							.getResName(), "]");
 				print("WITH CHECKSUM [" + f.getCheckSum(), "]");
 				print("WITH HASH [", MHash.toPrintString(f.getSearchHash()), "]");
 				
 				fc.read(buffer);
 				
 				try {
-					workers = doSearch(numWorkers, workers, threads, i, buffer, sync,
-							progress, f);
+					workers = doSearch(numWorkers, workers, threads, i, buffer, f);
 				} catch (InterruptedException e) {
 					throw new SearchInterruptedException("InterruptedException");
 				}
@@ -277,10 +267,7 @@ final public class Installer extends Main {
 						fc.position(w.resultInt);
 						fc.write(ByteBuffer.wrap(w.resultBytes));
 						
-						editedUpks.add(upkFile);
-						if (sync != null) {
-							sync.plusProgress(1);
-						}
+						editedUpks.add(upkFile);					
 						break;
 					}
 				}
@@ -298,17 +285,13 @@ final public class Installer extends Main {
 					// TODO MAY HAVE TO INCLUDE SOME OF FULL INSTALL CHECK SO
 					// CAN ROLLBACK
 					print("RESOURCE NOT FOUND [" + f.getResName(),
-							"] PLEASE CHECK YOUR CONFIG SETTINGS.", "");
+								"] PLEASE CHECK YOUR CONFIG SETTINGS.", "");
 					
-					print(
-							"\n",
-							"THE SYSTEM CURRENTLY DOES NOT UNDO CHANGES PLEASE DO SO MANUALLY AND REPORT ERROR.\n",
-							CONSOLE_SEPARATOR);
+					print("\n",
+								"THE SYSTEM CURRENTLY DOES NOT UNDO CHANGES PLEASE DO SO MANUALLY AND REPORT ERROR.\n",
+								CONSOLE_SEPARATOR);
 					throw new UpkResourceNotFoundException();
 				}
-			}
-			if (sync != null) {
-				sync.plusProgress(1);
 			}
 			i++;
 		}
@@ -329,22 +312,21 @@ final public class Installer extends Main {
 	 * @return
 	 * @throws InterruptedException
 	 */
-	@SuppressWarnings("rawtypes")
-	static Worker[] doSearch(int threadsNum, Worker[] workers,
-			Thread[] threads, int i, ByteBuffer buffer, SyncProgress sync,
-			float[] progress, ResFile f) throws InterruptedException {
+	static Worker[] doSearch(int threadsNum, Worker[] workers, Thread[] threads, int i,
+				ByteBuffer buffer, ResFile f)
+				throws InterruptedException {
 		
 		final CountDownLatch mainCDLatch = new CountDownLatch(1);
 		final CountDownLatch workerCDLatch = new CountDownLatch(threadsNum);
 		final int length = buffer.capacity() / threadsNum;
-				
+		
 		for (int j = 0; j < threadsNum; ++j) {
 			
 			int start = j * length;
 			int end = start + (length - 1);
 			
 			workers[j] = new Worker(f, buffer.array(), start, end, md, mainCDLatch,
-					workerCDLatch, threads, j + 1, sync, progress[i] / threadsNum);
+						workerCDLatch, threads, j + 1);
 			
 			threads[j] = new Thread(workers[j]);
 		}
@@ -367,7 +349,6 @@ final public class Installer extends Main {
 		return upkFiles;
 	}
 	
-	
 	/**
 	 * Gui only. Determines the progress to be allocated for each part of work to
 	 * be done.
@@ -375,9 +356,9 @@ final public class Installer extends Main {
 	 * @param mConfig
 	 * @return
 	 */
-	static float[] calculateWorkProgress(List<ResFile> files,
-			Vector<Path> upkFiles, int threadsNum) {
-	
+	static float[] calculateWorkProgress(List<ResFile> files, Vector<Path> upkFiles,
+				int threadsNum) {
+		
 		int i = 0;
 		int size = files.size();
 		float[] passesForRes = new float[size];

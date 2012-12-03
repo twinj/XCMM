@@ -2,37 +2,79 @@
 <project default="create_run_jar" name="Create Runnable Jar for Project XCMM with libraries in sub-folder">
 	<!--this file was created by Eclipse Runnable JAR Export Wizard-->
 	<!--ANT 1.7 is required                                        -->
-	<target name="create_run_jar">
-		<!--delete dir="XCMM/bin" /-->
 
-		<jar destfile="XCMM/XCMM.jar">
+	<!--property name="version" value="1.06BETA"/-->
+	<property name="dir.build" value="build/classes" />
+	<property name="dir.dist" value="XCMM" />
+	<property name="build.name" value="xcmm" />
+	<property name="pinstaller.name" value="pinstaller" />
+	<property name="pinstaller.dist" value="${dir.dist}/PInstaller" />
+
+	<target name="create_run_jar">
+		<jar destfile="${dir.dist}/${build.name}.jar">
+
 			<manifest>
 				<attribute name="Main-Class" value="org.xcom.mod.console.XCMConsole" />
-				<attribute name="Class-Path" value=". lib/hibernate-jpa-2.0-api-1.0.0.Final.jar lib/lipstikLF-1.1.jar" />
+				<attribute name="Class-Path" value=". lib/hibernate-jpa-2.0-api-1.0.0.Final.jar lib/lipstikLF-1.1.jar " />
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="Release-Version" value="${version}" />
 			</manifest>
-			<fileset dir="build/classes" />
+			<zipfileset dir="${dir.build}" includes="org/xcom/console/** org/xcom/mod/** org/xcom/main/**" />
 		</jar>
-		<delete dir="XCMM/lib" />
-		<delete dir="XCMM/mods" />
-		<delete dir="XCMM/tools" />
-		<delete dir="XCMM/unpacked" />
-		<delete dir="XCMM/config" />
-		<delete dir="XCMM/temp" />
-		
-		<!--mkdir dir="XCMM/bin" /-->
-		<mkdir dir="XCMM/lib" />
-		<mkdir dir="XCMM/mods" />
-		<mkdir dir="XCMM/tools" />
-		<mkdir dir="XCMM/unpacked" />
-		<mkdir dir="XCMM/config" />
-		<mkdir dir="XCMM/lib" />
-		<mkdir dir="XCMM/temp" />
 
-		<copy file="lib/hibernate-jpa-2.0-api-1.0.0.Final.jar" todir="XCMM/lib" />
-		<copy file="lib/lipstikLF-1.1.jar" todir="XCMM/lib" />
-		<copy file="src/resources/XCMM-Gui.bat" toDir="XCMM" />
-		<copy file="src/resources/XCMM-Usage.bat" toDir="XCMM" />
-		<copy file="src/resources/mods/ModEst1999.xmod.export.xml" toDir="XCMM/mods" />
+		<jar destfile="${pinstaller.dist}/${pinstaller.name}.jar">
+			<manifest>
+				<attribute name="Main-Class" value="org.xcom.pinstaller.gui.PInstall" />
+				<attribute name="Class-Path" value=". " />
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="Release-Version" value="${version}" />
+			</manifest>
+			<zipfileset dir="${dir.build}" includes="org/xcom/pinstaller/gui/** org/xcom/main/shared/** org/xcom/mod/tools/installer/** org/xcom/mod/tools/xshape/** org/xcom/mod/tools/shared/** org/xcom/mod/gui/shared/** org/xcom/mod/gui/streams/** org/xcom/mod/gui/workers/**" />
+		</jar>
+
+		<delete dir="${dir.dist}/lib" />
+		<delete dir="${dir.dist}/mods" />
+		<delete dir="${dir.dist}/tools" />
+		<delete dir="${dir.dist}/unpacked" />
+		<delete dir="${dir.dist}/config" />
+		<delete dir="${dir.dist}/temp" />
+
+		<mkdir dir="${dir.dist}/lib" />
+		<mkdir dir="${dir.dist}/mods" />
+		<mkdir dir="${dir.dist}/tools" />
+		<mkdir dir="${dir.dist}/unpacked" />
+		<mkdir dir="${dir.dist}/config" />
+		<mkdir dir="${dir.dist}/temp" />
+
+		<copy file="lib/hibernate-jpa-2.0-api-1.0.0.Final.jar" todir="${dir.dist}/lib" />
+		<copy file="lib/lipstikLF-1.1.jar" todir="${dir.dist}/lib" />
+		<copy file="src/resources/xcmm.bat" toDir="${dir.dist}" />
+		<copy file="src/resources/usage.bat" toDir="${dir.dist}" />
+		<copy file="src/resources/mods/ModEst1999v3.xmod.export.xml" toDir="${dir.dist}/mods/ModEst1999v3" />
+		<copy file="src/resources/history.xml" toDir="${dir.dist}/temp" />
+		<copy file="src/resources/mods/DefaultGameCore.ini" toDir="${dir.dist}/mods/ModEst1999v3" />
+				<copy file="src/resources/mods/install.html" toDir="${dir.dist}/mods/ModEst1999v3" />
+
+		<delete dir="${pinstaller.dist}/lib" />
+		<delete dir="${pinstaller.dist}/mods" />
+		<delete dir="${pinstaller.dist}/tools" />
+		<delete dir="${pinstaller.dist}/unpacked" />
+		<delete dir="${pinstaller.dist}/config" />
+		<delete dir="${pinstaller.dist}/temp" />
+		<delete dir="${pinstaller.dist}/install" />
+
+		<mkdir dir="${pinstaller.dist}/mods" />
+		<mkdir dir="${pinstaller.dist}/tools" />
+		<mkdir dir="${pinstaller.dist}/unpacked" />
+		<mkdir dir="${pinstaller.dist}/config" />
+		<mkdir dir="${pinstaller.dist}/temp" />
+		<mkdir dir="${pinstaller.dist}/install" />
+
+		<copy file="src/resources/pinstaller.bat" toDir="${pinstaller.dist}" />
+		<copy file="src/resources/mods/install.xmod.export.xml" toDir="${pinstaller.dist}/install" />
+		<copy file="src/resources/mods/DefaultGameCore.ini" toDir="${pinstaller.dist}/install" />
+		<copy file="src/resources/mods/install.html" toDir="${pinstaller.dist}/install" />
+
 
 	</target>
 </project>

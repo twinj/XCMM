@@ -23,10 +23,9 @@ import java.util.concurrent.CountDownLatch;
 
 import javax.xml.bind.DatatypeConverter;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.gui.workers.RunInBackground.SyncProgress;
-import org.xcom.mod.pojos.HexEdit;
-import org.xcom.mod.pojos.ResFile;
+import org.xcom.main.shared.Main;
+import org.xcom.main.shared.entities.HexEdit;
+import org.xcom.main.shared.entities.ResFile;
 import org.xcom.mod.tools.xshape.MHash;
 
 /**
@@ -41,9 +40,6 @@ final public class Worker implements Runnable {
 	final int end;
 	final MessageDigest md;
 	int id;
-	float progress;
-	@SuppressWarnings("rawtypes")
-	private SyncProgress sync;
 	
 	// @SuppressWarnings("VolatileArrayField")
 	final CountDownLatch mainCountDownLock;
@@ -54,11 +50,9 @@ final public class Worker implements Runnable {
 	volatile int resultInt = -1;
 	volatile boolean isInstalled = false;
 	
-	@SuppressWarnings("rawtypes")
 	public Worker(ResFile mod, byte[] buffer, int start, int end,
 			MessageDigest md, CountDownLatch mainCountDownLock,
-			CountDownLatch workerCountDownLock, Thread[] workers, int id,
-			SyncProgress sync, float f) {
+			CountDownLatch workerCountDownLock, Thread[] workers, int id) {
 		
 		this.mod = mod;
 		this.buffer = buffer;
@@ -69,8 +63,6 @@ final public class Worker implements Runnable {
 		this.workerCountDownLock = workerCountDownLock;
 		this.workers = workers;
 		this.id = id;
-		this.sync = sync;
-		this.progress = f;
 	}
 	
 	@Override
@@ -83,9 +75,7 @@ final public class Worker implements Runnable {
 		final byte[] searchHash = MHash.hexStringGetBytes(mod.getSearchHash());
 		
 		String work = "...";
-		
-		float progressPlus = buffer.length / workers.length / progress;
-		
+
 		for (int j = start; j <= end; ++j) {
 			final int m = j + hashDataLength;
 			int k = j;
@@ -94,18 +84,8 @@ final public class Worker implements Runnable {
 			while (k < m) {
 				thisSum += buffer[k++] & 0xFF;
 			}
-			if (sync != null) {
-				// check progress
-				if (j % (int)progressPlus == progressPlus - 1) {
-					sync.plusProgress(1);
-					progress--;
-				}
-			}
-			
-			if (Thread.interrupted()) {
-				if (sync != null) {
-					sync.plusProgress((int) progress);
-				}
+
+			if (Thread.interrupted()) {				
 				return;
 			}
 			if (thisSum == targetSum) {
@@ -126,11 +106,7 @@ final public class Worker implements Runnable {
 									"] CHANGED TO [" + c.getData(), "]");
 							
 							bufferSegmt[c.getOffset()] = DatatypeConverter.parseHexBinary(c
-									.getData())[0];
-							
-							if (sync != null) {
-								sync.plusProgress(1);
-							}
+									.getData())[0];						
 						}
 						
 						resultBytes = bufferSegmt;

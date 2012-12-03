@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.xcom.mod.Main;
+import org.xcom.main.shared.Main;
 
 public class ModIni {
 	

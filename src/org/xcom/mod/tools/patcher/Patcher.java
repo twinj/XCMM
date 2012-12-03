@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-import org.xcom.mod.Main;
+import org.xcom.main.shared.Main;
 
 public class Patcher extends Main {
 	

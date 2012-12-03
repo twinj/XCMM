@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
-import org.xcom.mod.Main;
+import org.xcom.main.shared.Main;
 import org.xcom.mod.gui.XCMGUI;
 
 public abstract class UnZipWorker extends SwingWorker<Void, Void> {

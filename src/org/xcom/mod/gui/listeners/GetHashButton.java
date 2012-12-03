@@ -8,9 +8,9 @@ import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
-import org.xcom.mod.Main;
+import org.xcom.main.shared.Main;
+import org.xcom.mod.tools.xshape.CalculateHashException;
 import org.xcom.mod.tools.xshape.MHash;
-import org.xcom.mod.tools.xshape.exceptions.CalculateHashException;
 
 
 

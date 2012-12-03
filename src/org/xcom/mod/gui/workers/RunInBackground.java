@@ -12,12 +12,12 @@ import javax.swing.JComponent;
 import javax.swing.ProgressMonitor;
 import javax.swing.SwingWorker;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.Main.Error;
+import org.xcom.main.shared.Main;
+import org.xcom.main.shared.Main.Error;
 
 public abstract class RunInBackground<T> extends SwingWorker<T, Void>
-		implements
-			PropertyChangeListener {
+			implements
+				PropertyChangeListener {
 	
 	protected Main main;
 	protected ProgressMonitor progressMonitor;
@@ -44,15 +44,14 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 			src.setEnabled(false);
 		}
 		main.run();
-	
 		return (T) main.getRet();
 	}
 	
 	@Override
 	protected void done() {
 		T ret = null;
-		Toolkit.getDefaultToolkit().beep();
-
+		//Toolkit.getDefaultToolkit().beep();
+		
 		try {
 			ret = get();
 		} catch (InterruptedException | ExecutionException ex) {
@@ -60,7 +59,7 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 		}
 		
 		Error e = main.getError();
-			
+		
 		after(e, ret);
 		parent.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		if (src != null) {

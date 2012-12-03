@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.HeadlessException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -26,54 +28,51 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.LayoutStyle.ComponentPlacement;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.TitledBorder;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.exceptions.XmlSaveException;
+import org.xcom.main.shared.Main;
+import org.xcom.main.shared.XmlSaveException;
+import org.xcom.main.shared.entities.Config;
 import org.xcom.mod.gui.XCMGUI;
+import org.xcom.mod.gui.shared.GetFilePanel;
 import org.xcom.mod.gui.workers.DecompressInBackGround;
 import org.xcom.mod.gui.workers.ExtractInBackGround;
-import org.xcom.mod.pojos.Config;
 
 import com.lipstikLF.LipstikLookAndFeel;
 import com.lipstikLF.theme.DefaultTheme;
 import com.lipstikLF.theme.KlearlooksTheme;
 import com.lipstikLF.theme.LightGrayTheme;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 
 public class SettingsDialog extends JDialog {
 	
 	private static final long serialVersionUID = 1L;
 	private JTextField textFieldName;
-	private JTextField textFieldInstall;
-	private JTextField textFieldUnpacked;
 	
 	private final ButtonGroup themeButtonGroup = new ButtonGroup();
-	private JTextField textFieldDecompressor;
-	private JTextField textFieldExtractor;
 	
 	private SettingsDialog THIS = this;
 	private JButton close;
+	private GetFilePanel xcomInstallPanel;
+	private GetFilePanel unpackedPathPanel;
+	private GetFilePanel decompressorPanel;
+	private GetFilePanel extractorPanel;
 	
 	public SettingsDialog(final Config config) {
 		addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentShown(ComponentEvent e) {
 				textFieldName.setText(config.getAuthor());
-				textFieldInstall.setText(config.getXcomPath());
-				textFieldUnpacked.setText(config.getUnpackedPath());
-				textFieldDecompressor.setText(config.getCompressorPath());
-				textFieldExtractor.setText(config.getExtractorPath());
+				xcomInstallPanel.getTextField().setText(config.getXcomPath());
+				unpackedPathPanel.getTextField().setText(config.getUnpackedPath());
+				decompressorPanel.getTextField().setText(config.getCompressorPath());
+				extractorPanel.getTextField().setText(config.getExtractorPath());
 				setLocationRelativeTo(XCMGUI.getFrame());
 			}
 		});
@@ -102,20 +101,8 @@ public class SettingsDialog extends JDialog {
 					TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		generalTab.setLayout(null);
 		
-		close = new JButton("Cancel");
-		close.setBounds(167, 183, 89, 23);
-		generalTab.add(close);
-		close.addActionListener(new ActionListener() {
-			
-			public void actionPerformed(ActionEvent event) {
-				dispose();
-			}
-		});
-		
-		close.setAlignmentX(0.5f);
-		
 		Box getAuthorHBox = Box.createHorizontalBox();
-		getAuthorHBox.setBounds(10, 11, 246, 20);
+		getAuthorHBox.setBounds(4, 14, 255, 20);
 		generalTab.add(getAuthorHBox);
 		
 		JLabel lblYourAuthorName = new JLabel("Your author name:");
@@ -129,63 +116,50 @@ public class SettingsDialog extends JDialog {
 		getAuthorHBox.add(textFieldName);
 		textFieldName.setColumns(10);
 		
+		xcomInstallPanel = new GetFilePanel("XCOM installation path:", null,
+					JFileChooser.DIRECTORIES_ONLY);
+		xcomInstallPanel.setPreferredSize(new Dimension(240, 50));
+		xcomInstallPanel.setMinimumSize(new Dimension(240, 50));
+		
+		xcomInstallPanel.setBounds(4, 50, 255, 50);
+		generalTab.add(xcomInstallPanel);
+		
+		unpackedPathPanel = new GetFilePanel("Unpacked game resources:", null,
+							JFileChooser.DIRECTORIES_ONLY);
+		unpackedPathPanel.setPreferredSize(new Dimension(240, 50));
+		unpackedPathPanel.setMinimumSize(new Dimension(240, 50));
+		unpackedPathPanel.setSize(255, 50);
+		unpackedPathPanel.setLocation(4, 110);
+				
+		generalTab.add(unpackedPathPanel);
+		
+		Box horizontalBox = Box.createHorizontalBox();
+		horizontalBox.setBounds(4, 170, 255, 25);
+		generalTab.add(horizontalBox);
+		
 		JButton btnSaveSettings = new JButton("Save");
+		btnSaveSettings.setPreferredSize(new Dimension(67, 23));
+		btnSaveSettings.setMinimumSize(new Dimension(67, 23));
+		btnSaveSettings.setMaximumSize(new Dimension(67, 23));
+		horizontalBox.add(btnSaveSettings);
 		btnSaveSettings.addActionListener(new SaveAction());
-		btnSaveSettings.setBounds(10, 183, 89, 23);
-		generalTab.add(btnSaveSettings);
-		
-		textFieldInstall = new JTextField();
-		textFieldInstall.setBounds(10, 80, 246, 20);
-		generalTab.add(textFieldInstall);
-		textFieldInstall.setColumns(10);
-		
-		Box horizontalXCOMBrowse = Box.createHorizontalBox();
-		horizontalXCOMBrowse.setBounds(10, 55, 246, 23);
-		generalTab.add(horizontalXCOMBrowse);
-		horizontalXCOMBrowse.setMinimumSize(new Dimension(235, 0));
-		horizontalXCOMBrowse.setAlignmentX(Component.LEFT_ALIGNMENT);
-		
-		JLabel lblNewLabel = new JLabel("XCOM installation path:");
-		horizontalXCOMBrowse.add(lblNewLabel);
-		lblNewLabel.setHorizontalAlignment(SwingConstants.LEFT);
-		lblNewLabel.setLabelFor(textFieldInstall);
 		
 		Component horizontalGlue = Box.createHorizontalGlue();
-		horizontalXCOMBrowse.add(horizontalGlue);
+		horizontalBox.add(horizontalGlue);
 		
-		JButton browseButton2 = new JButton("Browse");
-		browseButton2.setAlignmentX(Component.RIGHT_ALIGNMENT);
-		horizontalXCOMBrowse.add(browseButton2);
+		close = new JButton("Cancel");
+		close.setPreferredSize(new Dimension(67, 23));
+		close.setMinimumSize(new Dimension(67, 23));
+		close.setMaximumSize(new Dimension(67, 23));
+		horizontalBox.add(close);
+		close.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent event) {
+				dispose();
+			}
+		});
 		
-		Box horizontalUnpackedBrowse = Box.createHorizontalBox();
-		horizontalUnpackedBrowse.setBounds(10, 124, 246, 23);
-		generalTab.add(horizontalUnpackedBrowse);
-		
-		JLabel lblUnpackedGameResources = new JLabel("Unpacked game resources:");
-		lblUnpackedGameResources.setAlignmentX(Component.CENTER_ALIGNMENT);
-		horizontalUnpackedBrowse.add(lblUnpackedGameResources);
-		lblUnpackedGameResources.setHorizontalTextPosition(SwingConstants.LEFT);
-		lblUnpackedGameResources.setHorizontalAlignment(SwingConstants.LEFT);
-		
-		textFieldUnpacked = new JTextField();
-		textFieldUnpacked.setBounds(10, 152, 246, 20);
-		generalTab.add(textFieldUnpacked);
-		textFieldUnpacked.setColumns(10);
-		lblUnpackedGameResources.setLabelFor(textFieldUnpacked);
-		
-		Component horizontalGlue_1 = Box.createHorizontalGlue();
-		horizontalUnpackedBrowse.add(horizontalGlue_1);
-		
-		JButton browseButton = new JButton("Browse");
-		horizontalUnpackedBrowse.add(browseButton);
-		
-		JSeparator separator = new JSeparator();
-		separator.setBounds(10, 42, 246, 20);
-		generalTab.add(separator);
-		
-		JSeparator separator_1 = new JSeparator();
-		separator_1.setBounds(10, 111, 246, 20);
-		generalTab.add(separator_1);
+		close.setAlignmentX(0.5f);
 		
 		JPanel toolsTab = new JPanel();
 		tabbedPane.addTab("Gildor's Tools", null, toolsTab, null);
@@ -194,93 +168,28 @@ public class SettingsDialog extends JDialog {
 		toolsTab.setEnabled(false);
 		toolsTab.setLayout(null);
 		
-		JSeparator separator_3 = new JSeparator();
-		separator_3.setBounds(10, 42, 246, 10);
-		toolsTab.add(separator_3);
 		
-		Box horizontalBox = Box.createHorizontalBox();
-		horizontalBox.setBounds(10, 55, 246, 23);
-		horizontalBox.setMinimumSize(new Dimension(235, 0));
-		horizontalBox.setAlignmentX(0.0f);
-		toolsTab.add(horizontalBox);
 		
-		JLabel lblUnrealPackageDecompresor = new JLabel("Unreal Package Decompresor:");
-		lblUnrealPackageDecompresor.setHorizontalAlignment(SwingConstants.LEFT);
-		horizontalBox.add(lblUnrealPackageDecompresor);
+		decompressorPanel = new GetFilePanel("Unreal Package Decompresor:", new java.io.File(Main.USER_DIR), JFileChooser.FILES_ONLY );
+		decompressorPanel.setPreferredSize(new Dimension(255, 50));
+		decompressorPanel.setBounds(4, 50, 255, 50);
+		decompressorPanel.setMinimumSize(new Dimension(255, 50));
+		decompressorPanel.setAlignmentX(0.0f);
+		toolsTab.add(decompressorPanel);
 		
-		Component horizontalGlue_2 = Box.createHorizontalGlue();
-		horizontalBox.add(horizontalGlue_2);
-		
-		JButton button = new JButton("Browse");
-		button.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = new JFileChooser();
-				
-				fc.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")));
-				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				
-				int returnVal = fc.showOpenDialog(THIS);
-				
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					java.io.File file = fc.getSelectedFile();
-					textFieldDecompressor.setText(file.getAbsolutePath());
-				}
-			}
-		});
-		button.setAlignmentX(1.0f);
-		horizontalBox.add(button);
-		
-		textFieldDecompressor = new JTextField();
-		textFieldDecompressor.setBounds(10, 80, 246, 20);
-		textFieldDecompressor.setText((String) null);
-		textFieldDecompressor.setColumns(10);
-		toolsTab.add(textFieldDecompressor);
-		
-		JSeparator separator_2 = new JSeparator();
-		separator_2.setBounds(10, 111, 246, 10);
-		toolsTab.add(separator_2);
-		
-		Box horizontalBox_1 = Box.createHorizontalBox();
-		horizontalBox_1.setMinimumSize(new Dimension(235, 0));
-		horizontalBox_1.setAlignmentX(0.0f);
-		horizontalBox_1.setBounds(10, 124, 246, 23);
-		toolsTab.add(horizontalBox_1);
-		
-		JLabel lblUnrealPackageExtractor = new JLabel("Unreal Package Extractor:");
-		lblUnrealPackageExtractor.setHorizontalAlignment(SwingConstants.LEFT);
-		horizontalBox_1.add(lblUnrealPackageExtractor);
-		
-		Component horizontalGlue_3 = Box.createHorizontalGlue();
-		horizontalBox_1.add(horizontalGlue_3);
-		
-		JButton button_1 = new JButton("Browse");
-		button_1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = new JFileChooser();
-				
-				fc.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")));
-				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				
-				int returnVal = fc.showOpenDialog(THIS);
-				
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					java.io.File file = fc.getSelectedFile();
-					textFieldExtractor.setText(file.getAbsolutePath());
-				}
-			}
-		});
-		button_1.setAlignmentX(1.0f);
-		horizontalBox_1.add(button_1);
-		
-		textFieldExtractor = new JTextField();
-		textFieldExtractor.setText((String) null);
-		textFieldExtractor.setColumns(10);
-		textFieldExtractor.setBounds(10, 152, 246, 20);
-		toolsTab.add(textFieldExtractor);
-		
+		extractorPanel = new GetFilePanel("Unreal Package Extractor:", new java.io.File(Main.USER_DIR), JFileChooser.FILES_ONLY );
+		extractorPanel.setPreferredSize(new Dimension(255, 50));
+		extractorPanel.setMinimumSize(new Dimension(250, 50));
+		extractorPanel.setAlignmentX(0.0f);
+		extractorPanel.setBounds(4, 110, 255, 50);
+		toolsTab.add(extractorPanel);
+	
 		JButton button_2 = new JButton("Save");
+		button_2.setMaximumSize(new Dimension(67, 23));
+		button_2.setMinimumSize(new Dimension(67, 23));
+		button_2.setPreferredSize(new Dimension(67, 23));
 		button_2.addActionListener(new SaveAction());
-		button_2.setBounds(10, 183, 89, 23);
+		button_2.setBounds(4, 170, 67, 23);
 		toolsTab.add(button_2);
 		
 		JPanel themeTab = new JPanel();
@@ -430,38 +339,7 @@ public class SettingsDialog extends JDialog {
 														ComponentPlacement.RELATED).addComponent(rdbtnNewRadioButton)
 											.addGap(46).addComponent(btnNewButton).addGap(21)));
 		themeTab.setLayout(gl_themeTab);
-		browseButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = new JFileChooser();
-				
-				fc.setCurrentDirectory(new java.io.File(textFieldUnpacked.getText()));
-				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-				
-				int returnVal = fc.showOpenDialog(THIS);
-				
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					java.io.File file = fc.getSelectedFile();
-					textFieldUnpacked.setText(file.getAbsolutePath());
-				}
-			}
-		});
-		browseButton2.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = new JFileChooser();
-				
-				fc.setCurrentDirectory(new java.io.File(textFieldInstall.getText()));
-				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-				
-				int returnVal = fc.showOpenDialog(THIS);
-				
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					java.io.File file = fc.getSelectedFile();
-					textFieldInstall.setText(file.getAbsolutePath());
-				}
-			}
-		});
 	}
-	
 	/**
 	 * Save action
 	 * 
@@ -475,12 +353,10 @@ public class SettingsDialog extends JDialog {
 			final Config config = XCMGUI.getConfig();
 			
 			final String name = textFieldName.getText();
-			final String unpackedPath = textFieldUnpacked.getText();
-			final String xComPath = textFieldInstall.getText();
-			final String compressorPath = textFieldDecompressor.getText();
-			final String extractorPath = textFieldExtractor.getText();
-			
-			final Path cookedCore = Paths.get(config.getCookedPath().toString(), "Core.upk");
+			final String unpackedPath = unpackedPathPanel.getTextField().getText();
+			final String xComPath = xcomInstallPanel.getTextField().getText();
+			final String compressorPath = decompressorPanel.getTextField().getText();
+			final String extractorPath = extractorPanel.getTextField().getText();
 			
 			Boolean isOk = true;
 			
@@ -488,6 +364,11 @@ public class SettingsDialog extends JDialog {
 			String title = "Incorrect setting.";
 			int op = JOptionPane.ERROR_MESSAGE;
 			
+			boolean xPathValid = XCMGUI.isXComPathValid(xComPath);
+			
+			if (xPathValid) {
+				config.setXcomPath(xComPath);
+			}
 			if (Files.exists(Paths.get(compressorPath))) {
 				config.setCompressorPath(compressorPath);
 			}
@@ -495,10 +376,13 @@ public class SettingsDialog extends JDialog {
 				config.setExtractorPath(extractorPath);
 			}
 			
+			final Path cookedCore = Paths.get(config.getCookedPath().toString(), "Core.upk");
+			
 			if (name.isEmpty() || unpackedPath.isEmpty() || xComPath.isEmpty()) {
+				isOk = false;
 				msg = "Setting field cannot be empty.";
 				
-			} else if (!XCMGUI.isXComPathValid(xComPath)) {
+			} else if (!xPathValid) {
 				isOk = false;
 				msg = "The system cannot verify your XCOM installtion.";
 				
@@ -519,7 +403,7 @@ public class SettingsDialog extends JDialog {
 				if (!yes) {
 					msg = "You need to select a valid path for Gildor's tools.";
 				} else {
-					msg = null;
+					msg = "The settings have been updated.";
 				}
 			} else if (!Main.isUnPackedPathValid(unpackedPath)) {
 				
@@ -575,7 +459,6 @@ public class SettingsDialog extends JDialog {
 			}
 			config.setAuthor(name);
 			config.setUnpackedPath(unpackedPath);
-			config.setXcomPath(xComPath);
 			
 			try {
 				Main.saveXml(config);
@@ -608,7 +491,7 @@ public class SettingsDialog extends JDialog {
 			int n1 = JOptionPane
 						.showConfirmDialog(
 									THIS,
-									"To get started you need to download Gildor's tools or select a working path.\nWould you like to download?",
+									"To get started you need to download Gildor's tools or select a working path.\nAfter the download the system will test to verify the tools.\n\nWould you like to download?",
 									"Download Gildor's tools?", JOptionPane.YES_NO_OPTION);
 			
 			switch (n1) {

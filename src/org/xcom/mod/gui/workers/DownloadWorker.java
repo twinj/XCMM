@@ -9,8 +9,7 @@ import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.gui.XCMGUI;
+import org.xcom.main.shared.Main;
 
 public abstract class DownloadWorker extends SwingWorker<Path, Void> {
 	
@@ -51,28 +50,28 @@ public abstract class DownloadWorker extends SwingWorker<Path, Void> {
 	}
 	
 	protected void downloadComplete() {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(), saveAs
+		JOptionPane.showMessageDialog(Main.getFrame(), saveAs
 				+ " has finished downloading.", "Download finished.",
 				JOptionPane.PLAIN_MESSAGE);
 	}
 	
 	protected void downloadFailedMsg() {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(), "The download from ["
+		JOptionPane.showMessageDialog(Main.getFrame(), "The download from ["
 				+ url + "] failed.", "Download Failed", JOptionPane.ERROR_MESSAGE);
 	}
 	
 	protected void downloadUnzipped(String filename) {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(), filename
+		JOptionPane.showMessageDialog(Main.getFrame(), filename
 				+ " has been setup.", "Download unzipped.", JOptionPane.PLAIN_MESSAGE);
 	}
 	
 	protected void downloadUnzipFailed() {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(), "Unzipping " + saveAs
+		JOptionPane.showMessageDialog(Main.getFrame(), "Unzipping " + saveAs
 				+ " has failed.", "Download unzip failed.", JOptionPane.ERROR_MESSAGE);
 	}
 	
 	protected void downloadCompleteAndUnzipped() {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(), "[" + saveAs
+		JOptionPane.showMessageDialog(Main.getFrame(), "[" + saveAs
 				+ "] has finished downloading and has been unzipped.",
 				"Task finished.", JOptionPane.PLAIN_MESSAGE);
 	}

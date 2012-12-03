@@ -11,9 +11,6 @@ import java.util.List;
 
 import javax.xml.bind.DatatypeConverter;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.tools.xshape.exceptions.CalculateHashException;
-
 final public class MHash {
 	
 	private static final int DEFAULT_BUFFER = 8096;

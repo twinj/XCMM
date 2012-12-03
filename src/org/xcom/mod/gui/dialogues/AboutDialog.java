@@ -70,7 +70,7 @@ public class AboutDialog extends JDialog {
 				dtrpnVersionbeta.setBounds(124, 2, 192, 147);
 				dtrpnVersionbeta.setBorder(null);
 				panel_1.add(dtrpnVersionbeta);
-				dtrpnVersionbeta.setText("XCOM Mod Manager\r\n\r\nVersion: 1.03-BETA\r\n\r\nCredits: \r\n    Daemonjax, dose206, Drakous79,  \r\n    dreadylein, Gildor, twinj");
+				dtrpnVersionbeta.setText("XCOM Mod Manager\r\n\r\nVersion: 1.06-BETA\r\n\r\nCredits: \r\n    Daemonjax, dose206, Drakous79,  \r\n    dreadylein, Gildor, twinj");
 
 
 		setModalityType(ModalityType.APPLICATION_MODAL);

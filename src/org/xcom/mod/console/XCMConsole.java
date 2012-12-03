@@ -14,30 +14,31 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.exceptions.ConfigFileException;
-import org.xcom.mod.exceptions.XmlSaveException;
-import org.xcom.mod.gui.CopyFileException;
+import org.xcom.main.shared.ConfigFileException;
+import org.xcom.main.shared.CopyFileException;
+import org.xcom.main.shared.Main;
+import org.xcom.main.shared.XmlSaveException;
+import org.xcom.main.shared.entities.Config;
+import org.xcom.main.shared.entities.HexEdit;
+import org.xcom.main.shared.entities.ModConfig;
+import org.xcom.main.shared.entities.ResFile;
+import org.xcom.main.shared.entities.XMod;
 import org.xcom.mod.gui.XCMGUI;
-import org.xcom.mod.pojos.Config;
-import org.xcom.mod.pojos.HexEdit;
-import org.xcom.mod.pojos.ModConfig;
-import org.xcom.mod.pojos.ResFile;
-import org.xcom.mod.pojos.XMod;
-import org.xcom.mod.tools.exceptions.ExportFileAccessException;
-import org.xcom.mod.tools.exceptions.UpkFileAccessException;
-import org.xcom.mod.tools.exceptions.UpkFileNotDecompressedException;
-import org.xcom.mod.tools.exceptions.UpkResourceNotFoundException;
 import org.xcom.mod.tools.installer.Installer;
-import org.xcom.mod.tools.installer.exceptions.SearchInterruptedException;
-import org.xcom.mod.tools.installer.exceptions.UpkFileNotFoundException;
+import org.xcom.mod.tools.installer.SearchInterruptedException;
+import org.xcom.mod.tools.installer.UpkFileNotFoundException;
+import org.xcom.mod.tools.maker.DetectUpkChangesException;
 import org.xcom.mod.tools.maker.Maker;
-import org.xcom.mod.tools.maker.exceptions.DetectUpkChangesException;
-import org.xcom.mod.tools.maker.exceptions.ProcessFileChangesException;
+import org.xcom.mod.tools.maker.ProcessFileChangesException;
+import org.xcom.mod.tools.shared.ExportFileAccessException;
+import org.xcom.mod.tools.shared.UpkFileAccessException;
+import org.xcom.mod.tools.shared.UpkFileNotDecompressedException;
+import org.xcom.mod.tools.shared.UpkFileNotExtractedException;
+import org.xcom.mod.tools.shared.UpkResourceNotFoundException;
+import org.xcom.mod.tools.xshape.CalculateHashException;
 import org.xcom.mod.tools.xshape.MHash;
+import org.xcom.mod.tools.xshape.XModXmlAccessException;
 import org.xcom.mod.tools.xshape.XShape;
-import org.xcom.mod.tools.xshape.exceptions.CalculateHashException;
-import org.xcom.mod.tools.xshape.exceptions.XModXmlAccessException;
 
 /**
  * 
@@ -48,6 +49,14 @@ import org.xcom.mod.tools.xshape.exceptions.XModXmlAccessException;
 public class XCMConsole extends Main {
 	
 	// MAIN ENTRY POINT
+
+	private final static String INVOKE_GUI = "-g";
+	private final static String INVOKE_MAKE = "-m";
+	private final static String INVOKE_INSTALL = "-i";
+	private final static String INVOKE_XSHAPE = "-x";
+	private final static String INVOKE_USAGE = "-u";
+
+
 	public static void main(String[] args) {
 
 		// Marshal helpers and Algorithms
@@ -95,8 +104,8 @@ public class XCMConsole extends Main {
 		}
 		
 		if (args.length == 0) {
-			printUsage();
-			exit(Error.NOTHING);
+			IN_GUI = true;
+			XCMGUI.run(true);
 		}
 		
 		if (args.length != 0) {
@@ -105,6 +114,9 @@ public class XCMConsole extends Main {
 			if (invoker.equals(INVOKE_GUI) && args.length == 1) {
 				IN_GUI = true;
 				XCMGUI.run(true);
+			} else if (invoker.equals(INVOKE_USAGE) && args.length == 1) {
+				printUsage();
+				exit(Error.NOTHING);
 			} else try {
 				XCMConsole.run(args);
 			} catch (Exception e) {
@@ -201,6 +213,9 @@ public class XCMConsole extends Main {
 				// TODO Auto-generated catch block
 				e.printStackTrace(System.err);
 			} catch (CalculateHashException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace(System.err);
+			} catch (UpkFileNotExtractedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace(System.err);
 			}
@@ -463,7 +478,9 @@ public class XCMConsole extends Main {
 	 *          enum code
 	 */
 	public static void exit(Error code) {
-		print(MAIN, code.getMsg());
+		if (code != Error.NOTHING) {
+			print(MAIN, code.getMsg());
+		}
 		System.exit(code.ordinal());
 	}
 	
@@ -484,7 +501,7 @@ public class XCMConsole extends Main {
 	 */
 	protected static void printUsage() {
 		
-		print(SYSTEM_NAME, "(([-i] | [-m]) (XMod Name)) | (-g)\n", "\tE.g:\t",
+		print(SYSTEM_NAME, " [ {[-i] | [-m]} mod name | -g | -u ]\n", "\tE.g:\t",
 				SYSTEM_NAME, " -i ModEst1999\n", "\t\t", SYSTEM_NAME, " -g");
 	}
 	

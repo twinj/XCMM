@@ -11,8 +11,7 @@ import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.gui.XCMGUI;
+import org.xcom.main.shared.Main;
 
 public class DecompressInBackGround extends SwingWorker<Void, Void> {
 	
@@ -41,7 +40,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 	
 	@Override
 	protected Void doInBackground() {
-		XCMGUI.getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		Main.getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		if (src != null) {
 			src.setEnabled(false);
 		}
@@ -54,7 +53,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 	@Override
 	protected void done() {
 		try {
-			XCMGUI.getFrame().setCursor(
+			Main.getFrame().setCursor(
 					Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 			if (src != null) {
 				src.setEnabled(true);
@@ -78,19 +77,19 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 		
 	}
 	protected void decompressionFailed() {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(),
+		JOptionPane.showMessageDialog(Main.getFrame(),
 				"There was an error decompressing the file(s)",
 				"Gildor's Unreal Decompressor", JOptionPane.ERROR_MESSAGE);
 	}
 	
 	protected void decompressionComplete() {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(),
+		JOptionPane.showMessageDialog(Main.getFrame(),
 				"Decompressing the files has completed.",
 				"Gildor's Unreal Decompressor", JOptionPane.PLAIN_MESSAGE);
 	}
 	
 	protected void errorOrganisingFiles() {
-		JOptionPane.showMessageDialog(XCMGUI.getFrame(),
+		JOptionPane.showMessageDialog(Main.getFrame(),
 				"There was an IO error when modifying the game resources.",
 				"Game file handler", JOptionPane.ERROR_MESSAGE);
 	}

@@ -63,6 +63,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EtchedBorder;
@@ -77,19 +78,20 @@ import javax.swing.event.TreeSelectionListener;
 import javax.swing.text.DefaultCaret;
 import javax.xml.bind.JAXBException;
 
-import org.xcom.mod.Main;
-import org.xcom.mod.exceptions.DownloadFailedException;
+import org.xcom.main.shared.DownloadFailedException;
+import org.xcom.main.shared.Main;
+import org.xcom.main.shared.entities.Config;
+import org.xcom.main.shared.entities.ModConfig;
+import org.xcom.main.shared.entities.XMod;
 import org.xcom.mod.gui.dialogues.AboutDialog;
 import org.xcom.mod.gui.dialogues.SettingsDialog;
 import org.xcom.mod.gui.listeners.GetHashButton;
+import org.xcom.mod.gui.shared.GetFilePanel;
 import org.xcom.mod.gui.streams.Stream;
 import org.xcom.mod.gui.workers.DecompressInBackGround;
 import org.xcom.mod.gui.workers.DownloadWorker;
 import org.xcom.mod.gui.workers.ExtractInBackGround;
 import org.xcom.mod.gui.workers.RunInBackground;
-import org.xcom.mod.pojos.Config;
-import org.xcom.mod.pojos.ModConfig;
-import org.xcom.mod.pojos.XMod;
 import org.xcom.mod.tools.installer.Installer;
 import org.xcom.mod.tools.maker.Maker;
 import org.xcom.mod.tools.xshape.XShape;
@@ -100,8 +102,6 @@ import com.lipstikLF.theme.KlearlooksTheme;
 public class XCMGUI extends Main {
 	
 	public static final String GUI_NAME = "XCMM";
-	
-	private final static JFrame frame = new JFrame(GUI_NAME);
 	
 	private static FileList filesOriginal;
 	private static FileList filesEdited;
@@ -139,10 +139,11 @@ public class XCMGUI extends Main {
 	private JButton getExtractorButton;
 	
 	private static SettingsDialog ad;
+	public static Stream FACING_STREAM;
+	private Random random = new Random();
 	
-	private Stream FACING_STREAM;
-	
-	protected Random random = new Random();
+	private static JFrame frame;
+	private GetFilePanel selectIni;
 	
 	/**
 	 * Create the gui.
@@ -150,8 +151,9 @@ public class XCMGUI extends Main {
 	 * @param config
 	 */
 	public XCMGUI() throws HeadlessException {
-		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(XCMGUI.class.getResource("/org/xcom/mod/gui/icons/wdVY5.jpg")));
-		
+		frame = new JFrame(GUI_NAME);
+		Main.contentPane = frame;
+		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(XCMGUI.class.getResource("/org/xcom/mod/gui/icons/XCMM-096x096.png")));
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setPreferredSize(new Dimension(800, 600));
 		
@@ -239,6 +241,7 @@ public class XCMGUI extends Main {
 						installButton.setEnabled(false);
 						makeButton.setEnabled(true);
 						FACING_STREAM = MAKE;
+						//System.setOut(MAKE);
 						break;
 					case INSTALL_TAB :
 						fileManagerHome.setVisible(false);
@@ -248,6 +251,7 @@ public class XCMGUI extends Main {
 						modDirectoryTree.getTree().clearSelection();
 						modFileTree.getTree().clearSelection();
 						FACING_STREAM = INSTALL;
+						//System.setOut(INSTALL);
 						break;
 					case HOME_TAB :
 						fileManagerInstall.setVisible(false);
@@ -256,6 +260,7 @@ public class XCMGUI extends Main {
 						makeButton.setEnabled(false);
 						installButton.setEnabled(false);
 						FACING_STREAM = MAIN;
+						//System.setOut(MAIN);
 					default :
 						break;
 				}
@@ -270,55 +275,56 @@ public class XCMGUI extends Main {
 	private void checkConfig() {
 		
 		String name = config.getAuthor();
+		Path decompress = Paths.get(config.getCompressorPath());
+		Path extract = Paths.get(config.getExtractorPath());
 		
-		if (name.isEmpty() || (!isXComPathValid(config.getXcomPath()))
-					|| (!isUnPackedPathValid(config.getUnpackedPath())) || name.equals("unknown")) {
+		if (name.equals("unknown") || name.isEmpty() || (!isXComPathValid(config.getXcomPath()))
+					|| (!isUnPackedPathValid(config.getUnpackedPath())) 
+					|| Files.notExists(decompress)
+					|| Files.notExists(extract)) {
 			
 			JOptionPane.showMessageDialog(frame, "Please set up the application correctly.",
 						"Incorrect settings.", JOptionPane.ERROR_MESSAGE);
 			ad.setVisible(true);
 		}
 		
-		Path decompress = Paths.get(config.getCompressorPath());
-		Path extract = Paths.get(config.getExtractorPath());
-		
 		if (Files.exists(decompress)) {
 			this.getDecompressorButton.setEnabled(false);
-		}
-		
+		}	
 		if (Files.exists(extract)) {
 			this.getExtractorButton.setEnabled(false);
 		}
-		Path p = Paths.get("temp\\history.xml");
+		Path history = Paths.get("temp", "history.xml");
 		
-		if (Files.exists(p)) {
+		if (Files.exists(history)) {
 			ModConfig mod = null;
 			
 			try {
-				mod = (ModConfig) u.unmarshal(p.toFile());
+				mod = (ModConfig) u.unmarshal(history.toFile());
 			} catch (JAXBException ex) {
 				ex.printStackTrace();
 			}
 			fieldModName.setText(mod.getName());
 			fieldModAuthor.setText(mod.getAuthor());
 			fieldModDescription.setText(mod.getDescription());
-			
+			selectIni.getTextField().setText(mod.getIni());
 			for (String s : mod.getOriginalFilePaths()) {
-				p = Paths.get(config.getUnpackedPath(), s).toAbsolutePath();
-				print(System.err, "Added original history file: " + p.toString() + "\n");
-				filesOriginal.getListModel().add(p);
+				history = Paths.get(config.getUnpackedPath(), s).toAbsolutePath();
+				print(System.err, "Added original history file: " + history.toString() + "\n");
+				filesOriginal.getListModel().add(history);
 				oFTClearButton.setEnabled(true);
 			}
 			
 			for (String s : mod.getEditedFilePaths()) {
-				p = Paths.get(s).normalize().toAbsolutePath();
-				print(System.err, "Added edited history file: " + p.toString() + "\n");
-				filesEdited.getListModel().add(p);
+				history = Paths.get(s).normalize().toAbsolutePath();
+				print(System.err, "Added edited history file: " + history.toString() + "\n");
+				filesEdited.getListModel().add(history);
 				oETClearButton.setEnabled(true);
 			}
+		} else {
+			fieldModAuthor.setText(config.getAuthor());
 		}
 	}
-	
 	/**
 	 * Initialise the contents of the frame.
 	 */
@@ -898,7 +904,7 @@ public class XCMGUI extends Main {
 		makerPanel.setLayout(null);
 		
 		Box verticalBox = Box.createVerticalBox();
-		verticalBox.setBounds(10, 30, 200, 100);
+		verticalBox.setBounds(10, 30, 200, 154);
 		makerPanel.add(verticalBox);
 		
 		Box hBoxModName = Box.createHorizontalBox();
@@ -938,6 +944,16 @@ public class XCMGUI extends Main {
 		Component verticalStrut_2 = Box.createVerticalStrut(20);
 		verticalBox.add(verticalStrut_2);
 		
+		selectIni = new GetFilePanel("XCom Game Core Ini:", new File(config.getXcomPath(),
+					"\\XComGame\\Config"), JFileChooser.FILES_ONLY);
+		selectIni.setPreferredSize(new Dimension(210, 50));
+		verticalBox.add(selectIni);
+		
+		Component verticalStrut_8 = Box.createVerticalStrut(20);
+		verticalStrut_8.setMinimumSize(new Dimension(0, 10));
+		verticalStrut_8.setPreferredSize(new Dimension(0, 10));
+		verticalBox.add(verticalStrut_8);
+		
 		Box vBoxModDescription = Box.createVerticalBox();
 		verticalBox.add(vBoxModDescription);
 		vBoxModDescription.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -951,7 +967,7 @@ public class XCMGUI extends Main {
 		verticalStrut.setMinimumSize(new Dimension(0, 5));
 		
 		JSplitPane splitPane = new JSplitPane();
-		splitPane.setBounds(10, 130, 200, 195);
+		splitPane.setBounds(10, 186, 200, 195);
 		makerPanel.add(splitPane);
 		splitPane.setBorder(null);
 		splitPane.setOneTouchExpandable(true);
@@ -1112,6 +1128,8 @@ public class XCMGUI extends Main {
 		JButton btnNewButton = new JButton("PatchIni");
 		btnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				JComponent src = (JComponent) e.getSource();
+				
 				JFileChooser fc = new JFileChooser();
 				fc.setCurrentDirectory(new File(getConfig().getXcomPath(), "XComGame\\Config"));
 				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -1122,17 +1140,19 @@ public class XCMGUI extends Main {
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					java.io.File file = fc.getSelectedFile();
 					Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
-					XShape xs = null;
-					try {
-						xs = new XShape(exeFile, file.toPath(), FACING_STREAM);
-					} catch (IOException ex) {
-						// TODO Auto-generated catch block
-						ex.printStackTrace();
-						return;
+					
+					int n = JOptionPane.showConfirmDialog(frame,
+								"Are you sure you wish to continue?", "IniPatcher.",
+								JOptionPane.YES_NO_OPTION);
+					
+					switch (n) {
+						case JOptionPane.YES_OPTION :
+							runXShapeInBackGround(exeFile, file.toPath(), src, FACING_STREAM);
+							
+							return;
+						default :
+							return;
 					}
-					
-					xs.patchIni();
-					
 				}
 			}
 		});
@@ -1187,6 +1207,7 @@ public class XCMGUI extends Main {
 		fileManagerMake.add(makeExtra, BorderLayout.CENTER);
 		
 		JSplitPane splitPaneFileDrop = new JSplitPane();
+		splitPaneFileDrop.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		splitPaneFileDrop.setResizeWeight(0.5);
 		splitPaneFileDrop.setAlignmentY(Component.CENTER_ALIGNMENT);
 		splitPaneFileDrop.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1195,7 +1216,7 @@ public class XCMGUI extends Main {
 		makeExtra.setLeftComponent(splitPaneFileDrop);
 		
 		JPanel panelFileDropOriginal = new JPanel();
-		panelFileDropOriginal.setMinimumSize(new Dimension(100, 160));
+		panelFileDropOriginal.setMinimumSize(new Dimension(100, 75));
 		splitPaneFileDrop.setLeftComponent(panelFileDropOriginal);
 		panelFileDropOriginal.setToolTipText("Drag and drop ORIGINAL files here");
 		panelFileDropOriginal.setBorder(new TitledBorder(null, "Original Files",
@@ -1231,8 +1252,9 @@ public class XCMGUI extends Main {
 		filesOriginal.setDragEnabled(true);
 		
 		JToolBar originalFilesToolbar = new JToolBar("Original files toolbar");
+		originalFilesToolbar.setOrientation(SwingConstants.VERTICAL);
 		originalFilesToolbar.setAlignmentY(0.5f);
-		panelFileDropOriginal.add(originalFilesToolbar, BorderLayout.SOUTH);
+		panelFileDropOriginal.add(originalFilesToolbar, BorderLayout.WEST);
 		
 		JButton oFTAddButton = new JButton("");
 		oFTAddButton.setToolTipText("Add file");
@@ -1292,7 +1314,7 @@ public class XCMGUI extends Main {
 		originalFilesToolbar.add(oFTClearButton);
 		
 		JPanel panelFileDropEdited = new JPanel();
-		panelFileDropEdited.setMinimumSize(new Dimension(100, 160));
+		panelFileDropEdited.setMinimumSize(new Dimension(100, 75));
 		splitPaneFileDrop.setRightComponent(panelFileDropEdited);
 		panelFileDropEdited.setToolTipText("Drag and drop EDITED files here");
 		panelFileDropEdited.setBorder(new TitledBorder(null, "Edited Files",
@@ -1327,8 +1349,9 @@ public class XCMGUI extends Main {
 		filesEdited.setBorder(null);
 		
 		JToolBar editedFilesToolbar = new JToolBar("Edited files toolbar");
+		editedFilesToolbar.setOrientation(SwingConstants.VERTICAL);
 		editedFilesToolbar.setAlignmentY(0.5f);
-		panelFileDropEdited.add(editedFilesToolbar, BorderLayout.SOUTH);
+		panelFileDropEdited.add(editedFilesToolbar, BorderLayout.WEST);
 		
 		JButton oETAddButton = new JButton("");
 		oETAddButton.setToolTipText("Add file");
@@ -1425,16 +1448,17 @@ public class XCMGUI extends Main {
 		JScrollPane scrollPaneNews = new JScrollPane();
 		scrollPaneNews.setPreferredSize(new Dimension(3, 103));
 		
-		JEditorPane splitPaneHome = new JEditorPane();
-		scrollPaneNews.setViewportView(splitPaneHome);
-		splitPaneHome.setPreferredSize(new Dimension(106, 123));
+		JEditorPane newsHome = new JEditorPane();
+		newsHome
+					.setText("<html>\r\n\t<head>\r\n\t\t<title>HTML Online Editor Sample</title>\r\n\t</head>\r\n\t<body>\r\n\t\t<h1>\r\n\t\t\tXcom Mod manager</h1>\r\n\t\t<p>\r\n\t\t\t&nbsp;</p>\r\n\t\t<p>\r\n\t\t\tGitHub repository - <a href=\"https://github.com/twinj/XCMM\">https://github.com/twinj/XCMM</a></p>\r\n\t\t<p>\r\n\t\t\tForum - <a href=\"http://forums.nexusmods.com/index.php?/topic/839384-xcmm-mod-manager-in-java/\">http://forums.nexusmods.com/index.php?/topic/839384-xcmm-mod-manager-in-java/</a></p>\r\n\t\t<p>\r\n\t\t\t&nbsp;</p>\r\n\t\t<p>\r\n\t\t\t&nbsp;</p>\r\n\t\t<p>\r\n\t\t\t&nbsp;</p></body>\r\n</html>\r\n");
+		newsHome.setContentType("text/html");
+		scrollPaneNews.setViewportView(newsHome);
+		newsHome.setPreferredSize(new Dimension(106, 123));
 		
-		splitPaneHome.setEditable(false);
-		splitPaneHome.setEnabled(false);
-		splitPaneHome.setBorder(new SoftBevelBorder(BevelBorder.LOWERED, null, null, null,
-					null));
-		splitPaneHome.setAlignmentY(0.5f);
-		splitPaneHome.setAlignmentX(0.5f);
+		newsHome.setEditable(false);
+		newsHome.setBorder(new SoftBevelBorder(BevelBorder.LOWERED, null, null, null, null));
+		newsHome.setAlignmentY(0.5f);
+		newsHome.setAlignmentX(0.5f);
 		
 		JSplitPane homeExtra = new JSplitPane();
 		homeExtra.setResizeWeight(0.3);
@@ -1464,6 +1488,8 @@ public class XCMGUI extends Main {
 		hos.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		hos.setEditable(false);
 		hos.setBorder(null);
+		
+		((DefaultCaret) hos.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		
 		fileManagerInstall.setBorder(new TitledBorder(null, "Browser", TitledBorder.RIGHT,
 					TitledBorder.TOP, null, null));
@@ -1506,6 +1532,8 @@ public class XCMGUI extends Main {
 		ios.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		ios.setEditable(false);
 		ios.setBorder(null);
+		
+		((DefaultCaret) ios.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		
 		JPanel panel_2 = new JPanel();
 		installExtra.setLeftComponent(panel_2);
@@ -1633,11 +1661,6 @@ public class XCMGUI extends Main {
 	public static void setConfig(Config config) {
 		
 		XCMGUI.config = config;
-	}
-	
-	public static JFrame getFrame() {
-		
-		return frame;
 	}
 	
 	public JTextArea getMos() {
@@ -1790,15 +1813,18 @@ public class XCMGUI extends Main {
 			String modName = fieldModName.getText();
 			String modAuthor = fieldModAuthor.getText();
 			String modDesc = fieldModDescription.getText();
+			String ini = selectIni.getTextField().getText();
 			
 			List<Path> originalFiles = filesOriginal.getListModel();
 			List<Path> editedFiles = filesEdited.getListModel();
 			
-			runMake(modName, modAuthor, modDesc, originalFiles, editedFiles, src);
+			runMake(modName, modAuthor, modDesc, ini, originalFiles, editedFiles, src);
 		}
 		
-		private void runMake(String modName, String modAuthor, String modDesc,
-					List<Path> originalFiles, List<Path> editedFiles, JComponent src) {
+		private void runMake(String modName, String modAuthor, String modDesc, String ini,
+					List<Path> originalFiles, List<Path> editedFiles, final JComponent src) {
+			
+			Path iniPath = Paths.get(ini);
 			
 			if (modName.isEmpty() || modAuthor.isEmpty() || modDesc.isEmpty()) {
 				// custom title, no icon
@@ -1807,7 +1833,14 @@ public class XCMGUI extends Main {
 							"Incorrect mod settings.", JOptionPane.ERROR_MESSAGE);
 				return;
 				
+			} else if (ini.isEmpty() && !Files.exists(iniPath)
+						&& iniPath.getFileName().toString().contains("ini")) {
+				JOptionPane.showMessageDialog(frame,
+							"If you are slecting an ini file to patch please makre sure it is valid.",
+							"Incorrect mod settings.", JOptionPane.ERROR_MESSAGE);
+				return;
 			} else if (originalFiles.isEmpty() || originalFiles.isEmpty()) {
+				
 				JOptionPane.showMessageDialog(frame,
 							"You must add files to a mod. Please correct mistake.",
 							"Files cannot be empty.", JOptionPane.ERROR_MESSAGE);
@@ -1850,6 +1883,7 @@ public class XCMGUI extends Main {
 			modConfig.setDescription(modDesc);
 			modConfig.setOriginalFiles(originalFiles);
 			modConfig.setEditedFiles(editedFiles);
+			modConfig.setIni(ini);
 			
 			List<String> originalPaths = new java.util.ArrayList<String>();
 			List<String> editedPaths = new java.util.ArrayList<String>();
@@ -1885,14 +1919,11 @@ public class XCMGUI extends Main {
 			modConfig.setEditedFilePaths(editedPaths);
 			
 			final Maker main = new Maker(modConfig);
-			RunInBackground<Void> work = new RunInBackground<Void>(frame, main, "Making mod "
+			RunInBackground<Object> work = new RunInBackground<Object>(frame, main, "Making mod "
 						+ modName, src) {
-				
-				/*
-				 * Executed in event dispatch thread
-				 */
+
 				@Override
-				public void after(Error e, Void r) {
+				public void after(Error e, Object r) {
 					
 					String msg = null;
 					String title = null;
@@ -1924,6 +1955,33 @@ public class XCMGUI extends Main {
 							msg = "Could not save mod files. Try again.";
 							title = "Files could not be saved.";
 							break;
+						case MAK_UPK_FILE_NOTEXTRACTED:
+							@SuppressWarnings("unchecked")
+							List<Path> uncFiles = (List<Path>) r;
+							
+							String fileNames = "";
+							
+							for (Path p : uncFiles) {
+								fileNames += (p.getFileName() + " ");
+							}
+							
+							int n = JOptionPane.showConfirmDialog(XCMGUI.getFrame(),
+										"Cannot continue. [" + fileNames + "] "
+													+ (uncFiles.size() > 1 ? "are" : "is")
+													+ " not extracted.\nExtraction will take some time especially if more than one file.\n\nDo you want to extract now?", title,
+										JOptionPane.YES_NO_OPTION);
+							
+							switch (n) {
+								case JOptionPane.YES_OPTION :
+									for (Path p : uncFiles) {
+										new ExtractInBackGround(p, src, XCMGUI.getFrame()).execute();
+									}
+									break;
+								default :
+							}
+							
+							msg = null;
+							
 						default :
 							break;
 					}
@@ -2102,50 +2160,95 @@ public class XCMGUI extends Main {
 	 * @param exeFile
 	 * @param paths
 	 * @param src
+	 * @param src2
 	 * @param stream
 	 */
-	public static void runXShapeInBackGround(Path exeFile, java.util.ArrayList<Path> paths,
-				JComponent src, Stream stream) {
+	public static void runXShapeInBackGround(final Path exeFile,
+				final java.util.ArrayList<Path> paths, final Path ini, final JComponent src,
+				final Stream stream) {
 		XShape xs = null;
+		String title = "XShape";
 		try {
-			xs = new XShape(exeFile, paths, stream);
+			if (ini == null) {
+				xs = new XShape(exeFile, paths, stream);
+			} else if (paths == null) {
+				xs = new XShape(exeFile, ini, stream);
+				title = "IniPatch";
+			} else {
+				xs = new XShape(exeFile, paths, ini, stream);
+				title = "XPatch";
+			}
 		} catch (IOException ex) {
 			String msg = "There was an error backing up your XComGame.exe.";
-			String title = "XShape";
 			ex.printStackTrace();
-			JOptionPane.showMessageDialog(frame, msg, title, JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(Main.getFrame(), msg, title,
+						JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 		
-		RunInBackground<Void> swingXShape = new RunInBackground<Void>(frame, xs, "Shaping "
-					+ exeFile.getFileName(), src) {
+		RunInBackground<Void> swingXShape = new RunInBackground<Void>(Main.getFrame(), xs,
+					"Shaping " + exeFile.getFileName(), src) {
 			
 			@Override
 			public void after(Error e, Void r) {
-				
-				String msg = e.getMsg();
 				String title = "XShape";
+				String msg = e.getMsg();
 				int op = JOptionPane.ERROR_MESSAGE;
+				
+				if (ini == null) {} else if (paths == null) {
+					title = "IniPatch";
+				} else {
+					title = "XPatch";
+				}
 				
 				switch (e) {
 					case NOTHING :
-						msg = "XShape has finished patching XComGame.exe";
+						msg = "Finished patching XComGame.exe";
 						op = JOptionPane.PLAIN_MESSAGE;
-						editedUpks.clear();
+						if (editedUpks != null) {
+							editedUpks.clear();
+						}
 						break;
 					case XSHA_HASH_GET_ERROR :
 					case XSHA_MOD_ACCESS_ERROR :
 					case XSHA_UPK_FILE_COMPRESSED :
 					case XSHA_UPK_FILENAME_ERROR :
 					case XSHA_PATCH_NOT_REQUIRED :
+					case XSHA_INI_PATCHERROR :
 					default :
 						break;
 				}
-				JOptionPane.showMessageDialog(frame, msg, title, op);
+				JOptionPane.showMessageDialog(Main.getFrame(), msg, title, op);
 			}
 		};
 		swingXShape.addPropertyChangeListener(swingXShape);
 		swingXShape.execute();
+	}
+	
+	/**
+	 * Runs XSaphe in the background thread.
+	 * 
+	 * @param exeFile
+	 * @param paths
+	 * @param src
+	 * @param stream
+	 */
+	public static void runXShapeInBackGround(Path exeFile, java.util.ArrayList<Path> paths,
+				JComponent src, Stream stream) {
+		runXShapeInBackGround(exeFile, paths, null, src, stream);
+	}
+	
+	/**
+	 * Runs XSaphe in the background thread.
+	 * 
+	 * @param exeFile
+	 * @param paths
+	 * @param src
+	 * @param stream
+	 */
+	public static void runXShapeInBackGround(Path exeFile, Path ini, JComponent src,
+				Stream stream) {
+		runXShapeInBackGround(exeFile, null, ini, src, stream);
 	}
 	
 	/**
