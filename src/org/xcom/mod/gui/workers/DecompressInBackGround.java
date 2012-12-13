@@ -74,6 +74,7 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 			}
 		}
 		decompressionComplete();
+		after();
 		
 	}
 	protected void decompressionFailed() {
@@ -92,5 +93,9 @@ public class DecompressInBackGround extends SwingWorker<Void, Void> {
 		JOptionPane.showMessageDialog(Main.getFrame(),
 				"There was an IO error when modifying the game resources.",
 				"Game file handler", JOptionPane.ERROR_MESSAGE);
+	}
+	
+	protected void after() {
+		
 	}
 }

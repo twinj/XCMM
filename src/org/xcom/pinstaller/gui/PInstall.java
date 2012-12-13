@@ -50,7 +50,6 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.border.EtchedBorder;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.DefaultCaret;
@@ -73,10 +72,17 @@ import org.xcom.mod.gui.workers.RunInBackground;
 import org.xcom.mod.tools.installer.Installer;
 import org.xcom.mod.tools.xshape.MHash;
 import org.xcom.mod.tools.xshape.XShape;
+import java.awt.FlowLayout;
+import javax.swing.JLabel;
+import javax.swing.JSeparator;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import javax.swing.GroupLayout;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.LayoutStyle.ComponentPlacement;
 
 public class PInstall extends Main {
 	
-	private final static String src = "/org/xcom/pinstaller/gui/XCMM-128x128.png";
 	
 	private JButton close;
 	
@@ -128,6 +134,7 @@ public class PInstall extends Main {
 		MAIN = Stream.getStream(MAIN_DELEGATE, hos);
 		INSTALL = Stream.getStream(INSTALL_DELEGATE, hos);
 		frame.setLocation(200, 200);
+		frame.pack();
 		
 	}
 	
@@ -165,21 +172,18 @@ public class PInstall extends Main {
 			}
 		});
 		
-		if (Files.exists(Paths.get("install", "install.html"))) {
-			try {
-				dtrpnWidthHeight.setPage(Paths.get("install", "install.html").toUri().toURL());
-			} catch (IOException ex) {}
-		} else {
+		//if (Files.exists(Paths.get("install", "install.html"))) {
+			//try {
+				//dtrpnWidthHeight.setPage(Paths.get("install", "install.html").toUri().toURL());
+			//} catch (IOException ex) {}
+		//} else {
 			
-			String imgsrc = PInstall.class.getResource(src).toString();
 			dtrpnWidthHeight
-						.setText("<html><p><img src='"
-									+ imgsrc
-									+ "'  align='left' width=128 height=128>"
+						.setText("<html><p>"
 									+ "<a href='https://github.com/twinj/XCMM'>GitHub</a></p>"
 									+ "<a href='http://forums.nexusmods.com/index.php?/topic/839384-xcmm-mod-manager-in-java/'>Forums</a>"
 									+ "</img></html>");
-		}
+	//	}
 		
 		Box horizontalBox_3 = Box.createHorizontalBox();
 		aboutModPanel.add(horizontalBox_3, BorderLayout.SOUTH);
@@ -187,6 +191,9 @@ public class PInstall extends Main {
 		JButton btnNewButton = new JButton("Install");
 		btnNewButton.addActionListener(new SaveAction());
 		horizontalBox_3.add(btnNewButton);
+		
+		JLabel lblNewLabel = new JLabel("  V:1.07c-BETA");
+		horizontalBox_3.add(lblNewLabel);
 		
 		Component horizontalGlue_4 = Box.createHorizontalGlue();
 		horizontalBox_3.add(horizontalGlue_4);
@@ -236,8 +243,8 @@ public class PInstall extends Main {
 							Path iniFile = Paths.get(config.getUnpackedPath(), "install.ini");
 							runXShapeInBackGround(exeFile, (ArrayList<Path>) f.getUpks(), Files
 										.exists(iniFile) == true ? iniFile : null,
-										(JComponent) e.getSource(), Main.MAIN, "XCMM Installer has finished re-patching the game.");
-							
+										(JComponent) e.getSource(), Main.MAIN,
+										"XCMM Installer has finished re-patching the game.");							
 						}
 						break;
 				}
@@ -341,31 +348,36 @@ public class PInstall extends Main {
 		horizontalBox_3.add(button);
 		button.setAlignmentX(0.5f);
 		
+		JPanel settingsTab = new JPanel();
+		tabbedPane.addTab("Settings", null, settingsTab, null);
+		tabbedPane.setEnabledAt(1, true);
+		GridBagLayout gbl_settingsTab = new GridBagLayout();
+		gbl_settingsTab.columnWidths = new int[]{329, 0};
+		gbl_settingsTab.rowHeights = new int[]{284, 0};
+		gbl_settingsTab.columnWeights = new double[]{0.0, Double.MIN_VALUE};
+		gbl_settingsTab.rowWeights = new double[]{0.0, Double.MIN_VALUE};
+		settingsTab.setLayout(gbl_settingsTab);
+		
 		JPanel generalTab = new JPanel();
-		tabbedPane.addTab("Settings", null, generalTab, null);
-		generalTab.setPreferredSize(new Dimension(400, 300));
-		generalTab.setBorder(new TitledBorder(UIManager.getBorder("TitledBorder.border"), "",
-					TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		generalTab.setLayout(null);
+		generalTab.setAlignmentY(Component.TOP_ALIGNMENT);
+		generalTab.setAlignmentX(Component.RIGHT_ALIGNMENT);
+		GridBagConstraints gbc_generalTab = new GridBagConstraints();
+		gbc_generalTab.fill = GridBagConstraints.BOTH;
+		gbc_generalTab.gridx = 0;
+		gbc_generalTab.gridy = 0;
+		settingsTab.add(generalTab, gbc_generalTab);
+		generalTab.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		
 		xcomInstallPanel = new GetFilePanel("XCOM installation path:", null,
 					JFileChooser.DIRECTORIES_ONLY);
-		xcomInstallPanel.setBounds(5, 8, 244, 50);
-		generalTab.add(xcomInstallPanel);
 		
 		gilderDecomPanel = new GetFilePanel("Gildor's Unreal Decompresor:", new java.io.File(
 					System.getProperty("user.dir")), JFileChooser.FILES_ONLY);
-		gilderDecomPanel.setBounds(5, 66, 244, 50);
-		generalTab.add(gilderDecomPanel);
 		
 		chooseModPanel = new GetFilePanel("Choose a mod:", new java.io.File(USER_DIR
 					+ "\\mods"), JFileChooser.FILES_ONLY);
-		chooseModPanel.setBounds(5, 127, 244, 50);
-		generalTab.add(chooseModPanel);
 		
 		Box horizontalBox_2 = Box.createHorizontalBox();
-		horizontalBox_2.setBounds(5, 182, 244, 29);
-		generalTab.add(horizontalBox_2);
 		
 		JButton btnVerifySettings = new JButton("Install");
 		horizontalBox_2.add(btnVerifySettings);
@@ -383,28 +395,51 @@ public class PInstall extends Main {
 		});
 		
 		close.setAlignmentX(0.5f);
+		
+		JSeparator separator = new JSeparator();
+		separator.setPreferredSize(new Dimension(86, 2));
+		GroupLayout gl_generalTab = new GroupLayout(generalTab);
+		gl_generalTab.setHorizontalGroup(
+			gl_generalTab.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_generalTab.createSequentialGroup()
+					.addGap(3)
+					.addGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addComponent(xcomInstallPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+							.addGap(4))
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addComponent(gilderDecomPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+							.addGap(4))
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addGap(68)
+							.addComponent(separator, GroupLayout.PREFERRED_SIZE, 1, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addComponent(chooseModPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+							.addGap(4))
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addComponent(horizontalBox_2, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+							.addGap(4)))
+					.addGap(78))
+		);
+		gl_generalTab.setVerticalGroup(
+			gl_generalTab.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_generalTab.createSequentialGroup()
+					.addGap(6)
+					.addComponent(xcomInstallPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
+					.addGap(8)
+					.addComponent(gilderDecomPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
+					.addGap(11)
+					.addGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addGap(48)
+							.addComponent(separator, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addComponent(chooseModPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
+					.addComponent(horizontalBox_2, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE)
+					.addGap(71))
+		);
+		generalTab.setLayout(gl_generalTab);
 		btnVerifySettings.addActionListener(new SaveAction());
-		
-		JPanel aboutPanel = new JPanel();
-		aboutPanel.setLayout(null);
-		aboutPanel.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		tabbedPane.addTab("About", null, aboutPanel, null);
-		
-		JEditorPane editorPane = new JEditorPane();
-		editorPane
-					.setText("\r\n\r\n\u2606\u250C\u2500\u2510   \u2500\u2510\u2606\r\n\u3000\u2502\u2592\u2502 /\u2592/\r\n\u3000\u2502\u2592\u2502/\u2592/\r\n\u3000\u2502\u2592 /\u2592/\u2500\u252C\u2500\u2510\r\n\u3000\u2502\u2592\u2502\u2592|\u2592\u2502\u2592\u2502\r\n\u250C\u2534\u2500\u2534\u2500\u2510-\u2518\u2500\u2518 \r\n\u2502\u2592\u250C\u2500\u2500\u2518\u2592\u2592\u2592\u2502\r\n\u2514\u2510\u2592\u2592\u2592\u2592\u2592\u2592\u250C\u2518\r\n\u3000\u2514\u2510\u2592\u2592\u2592\u2592\u250C\u2518");
-		editorPane.setFont(new Font("Serif", Font.PLAIN, 11));
-		editorPane.setEditable(false);
-		editorPane.setBorder(null);
-		editorPane.setBounds(2, 2, 122, 217);
-		aboutPanel.add(editorPane);
-		
-		JEditorPane dtrpnXcmmInstallerPortable = new JEditorPane();
-		dtrpnXcmmInstallerPortable
-					.setText("\r\n\r\n\r\nXCMM Installer Portable\r\n\r\nVersion: 1.06-BETA\r\n\r\nCredits: \r\n    Daemonjax, dose206, \r\n    Drakous79,  dreadylein, \r\n    Gildor, twinj");
-		dtrpnXcmmInstallerPortable.setBorder(null);
-		dtrpnXcmmInstallerPortable.setBounds(124, 2, 192, 217);
-		aboutPanel.add(dtrpnXcmmInstallerPortable);
 		
 		JScrollPane outPutTab = new JScrollPane();
 		tabbedPane.addTab("Console output", null, outPutTab, null);
@@ -522,12 +557,11 @@ public class PInstall extends Main {
 						return;
 					}
 				}
-				boolean temp = false;
 				
 				if (mod.getIni() != null) {
 					iniPath = Paths.get(modPath.getParent().toString(), mod.getIni());
-					if (Files.exists(iniPath)) {
-						temp = true;
+					if (Files.notExists(iniPath)) {
+						iniPath = null;
 					}
 				}
 				
@@ -543,21 +577,32 @@ public class PInstall extends Main {
 					default :
 						break;
 				}
-				final boolean installIni = temp;
+				
+				final Path iniFile = iniPath;
 				
 				RunInBackground<Object> install = new RunInBackground<Object>(frame,
 							new Installer(modPath.toFile()), "Installing " + mod.getName(), src) {
 					
 					@Override
-					public void after(Error e, Object ret) {
-						XMod installed = ((Installer) main).getInstallPackage();
+					protected void after(Error e, Object ret) {
+						afterInstallTry(this, (Installer) main, src);
+					}				
+					protected void afterInstallTry(final RunInBackground<Object> install,
+								final Installer main, final JComponent src) {
+						Object ret = null;
+						try {
+							ret = install.get();
+						} catch (InterruptedException | ExecutionException ex) {}
+						
+						final XMod installed = ((Installer) main).getInstallPackage();
+						Error e = main.getError();
+						
 						if (installed.getIsInstalled()) {
 							Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
-							if (installIni) {
-								runXShapeInBackGround(exeFile, editedUpks, iniPath, src, MAIN, "XCMM Installer has finished installing the mod.");
-							} else {
-								runXShapeInBackGround(exeFile, editedUpks, null, src, MAIN, "XCMM Installer has finished installing the mod.");
-							}
+							
+							runXShapeInBackGround(exeFile, editedUpks, iniFile, src, MAIN,
+										"XCMM Installer has finished installing the mod.");
+							
 						} else {
 							
 							String msg = null;
@@ -601,32 +646,38 @@ public class PInstall extends Main {
 																		+ " not decompressed.\nThe system will decompress the files now.\n\nAfter it has finished restart the installaltion.",
 															title, JOptionPane.WARNING_MESSAGE);
 									
-									new DecompressInBackGround(uncFiles, src).execute();
+									DecompressInBackGround dib = new DecompressInBackGround(uncFiles, src) {
+										@Override
+										protected void after() {
+											final RunInBackground<Object> install = new RunInBackground<Object>(frame, main,
+														"Trying install again..." + installed.getName(), src) {
+												@Override
+												protected void after(Error e, Object ret) {
+													afterInstallTry(this, (Installer) main, src);
+												}
+											};
+											install.addPropertyChangeListener(install);
+											install.execute();
+										}
+									};
+									dib.execute();
 									
 									msg = null;
 								default :
 									break;
 							}
-							
 							if (msg != null) {
 								JOptionPane.showMessageDialog(frame.getContentPane(), msg, title,
 											JOptionPane.ERROR_MESSAGE);
 							}
 						}
-					}
+					}						
 				};
 				install.addPropertyChangeListener(install);
 				install.execute();
 			}
 		}
-		/**
-		 * 
-		 * @param unpackedPath
-		 * @param cookedCore
-		 * @param src
-		 * @throws HeadlessException
-		 * @throws MalformedURLException
-		 */
+
 		public boolean getToolsToPerformInitialVerification(final String unpackedPath,
 					final Path cookedCore, final JComponent src) throws HeadlessException,
 					MalformedURLException {
@@ -649,7 +700,7 @@ public class PInstall extends Main {
 							}
 							close.setEnabled(false);
 							frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-							Main.openDesktopBrowser("http://www.gildor.org/");
+							Main.openDesktopBrowser(HTTP_WWW_GILDOR_ORG);
 							decompressWithToolCheck(null, decompress, true);
 							return null;
 						}
@@ -674,6 +725,7 @@ public class PInstall extends Main {
 			return true;
 		}
 	}
+
 	public static void main(String[] args) {
 		Path path = Paths.get(Config.PATH);
 		
@@ -704,8 +756,7 @@ public class PInstall extends Main {
 	
 	public static void runc() {
 		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				
+			public void run() {			
 				try {
 					new PInstall();
 					Main.contentPane.setVisible(true);
@@ -714,19 +765,12 @@ public class PInstall extends Main {
 				}
 			}
 		});
-	}
-	
+	}	
 	@Override
 	public void run() {}
 	
 	/**
-	 * /** Runs XSaphe in the background thread.
-	 * 
-	 * @param exeFile
-	 * @param paths
-	 * @param src
-	 * @param src2
-	 * @param stream
+	 * Runs XSaphe in the background thread.
 	 */
 	public static void runXShapeInBackGround(final Path exeFile,
 				final java.util.ArrayList<Path> paths, final Path ini, final JComponent src,
@@ -796,18 +840,13 @@ public class PInstall extends Main {
 	/**
 	 * Will decompress a chosen file. Checks for tool existence and gets it if
 	 * needed.
-	 * 
-	 * @param fileToDecom
-	 * @param decompress
-	 * @throws DownloadFailedException
-	 * @throws ZipException
 	 */
 	public static void decompressWithToolCheck(final Path fileToDecom, Path decompress,
 				Boolean inBackGround) throws DownloadFailedException, ZipException {
 		if (Files.notExists(decompress)) {
 			URL url = null;
 			try {
-				url = new URL("http://www.gildor.org/down/32/umodel/decompress.zip");
+				url = new URL(HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP);
 			} catch (MalformedURLException ignore) {
 				ignore.printStackTrace(System.err);
 			}
@@ -815,10 +854,5 @@ public class PInstall extends Main {
 			Path zip = Main.download(saveAs, url);
 			Main.unZip(zip, Paths.get("tools"));
 		}
-		// if (inBackGround) {
-		// new DecompressInBackGround(fileToDecom).execute();
-		// } else {
-		// Main.decompress(fileToDecom);
-		// }
 	}
 }

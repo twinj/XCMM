@@ -40,7 +40,7 @@ import org.xcom.mod.tools.xshape.XShape;
 public abstract class Main implements Runnable {
 	
 	public static final Charset DEFAULT_FILE_ENCODING = Charset.forName("UTF-8");
-	
+
 	public enum Error {
 		
 		NOTHING(""), //
@@ -59,10 +59,10 @@ public abstract class Main implements Runnable {
 		XML_SAVE_ERROR("Xml failed to save."), //
 		XML_PRINT_ERROR("Xml failed to print."), //
 		INS_EXPORT_EXTRACTION("Export file extraction failed"), //
-		INS_UPK_FILE_NF("Cooked Upk file not found."), //
-		INS_UPK_FILE_NA("Cooked Upk file not accessible."), //
-		INS_UPK_FILE_IO("Cooked Upk file use produced IO error."), //
-		INS_UPK_FILE_COMPRESSED("Cooked Upk file still compressed."), //
+		INS_UPK_FILE_NF("Cooked .upk file not found."), //
+		INS_UPK_FILE_NA("Cooked .upk file not accessible."), //
+		INS_UPK_FILE_IO("Cooked .upk file use produced IO error."), //
+		INS_UPK_FILE_COMPRESSED("Cooked .upk file still compressed."), //
 		INS_UPK_RES_NF("Upk resource was not found in unpacked files"), //
 		INS_FATAL("Installer stopped for unknown reason."), //
 		
@@ -76,7 +76,7 @@ public abstract class Main implements Runnable {
 		XSHA_HASH_GET_ERROR("Could not calculate SHA hash."), //
 		XSHA_MOD_ACCESS_ERROR("Could not access file."), //
 		XSHA_UPK_FILENAME_ERROR("Could not find upk filename. Please report this error."), //
-		XSHA_PATCH_NOT_REQUIRED("Pacthing was not required."), //
+		XSHA_PATCH_NOT_REQUIRED("Patching was not required."), //
 		XSHA_INI_PATCHERROR("Error pathcing Ini file."),
 		
 		DEFAULT("THERE WAS AN ERROR"); //
@@ -93,6 +93,10 @@ public abstract class Main implements Runnable {
 	
 	protected Error ERROR;
 	
+	public static final String HTTP_WWW_GILDOR_ORG = "http://www.gildor.org/";
+	public static final String HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP = "http://www.gildor.org/down/33/umodel/decompress.zip";
+	public static final String HTTP_WWW_GILDOR_ORG_DOWN_EXTRACT_ZIP = "http://www.gildor.org/down/33/umodel/extract.zip";
+	
 	public final static String CONSOLE_SEPARATOR = "**************************"
 				+ "*******************************" + "*******************************";
 	public final static String SYSTEM_NAME = "xcmm";
@@ -104,8 +108,8 @@ public abstract class Main implements Runnable {
 	protected final static String RELATIVE_EXE_PATH = "\\Binaries\\Win32\\XComGame.exe";
 	protected final static String COMPRESSED_UPK_SIZE_EXT = ".uncompressed_size";
 	protected final static String RELATIVE_TOC_PATH = "\\XComGame\\PCConsoleTOC.txt";
-	private final static String UNPACKED_HEADER = "C1832A9E4D033B"; // C1 83 2A 9E
-																																	// 4D 03 3B
+	private final static String UNPACKED_HEADER = "C1832A9E4D"; // version 4D033B
+																																	
 	protected final static int NUM_CPU = (Runtime.getRuntime().availableProcessors());
 	
 	protected static Config config;
@@ -206,7 +210,13 @@ public abstract class Main implements Runnable {
 		for (Path o : originalFiles) {
 			boolean matched = false;
 			for (Path e : editedFiles) {
-				if (e.getFileName().equals(o.getFileName())) {
+				String [] eS = e.getFileName().toString().split("\\.");
+				String [] oS = o.getFileName().toString().split("\\.");
+				
+				String eT = eS[eS.length - 1];
+				String oT = oS[oS.length - 1];
+				
+				if (eT.equals(oT)) {
 					matched = true;
 					break;
 				}

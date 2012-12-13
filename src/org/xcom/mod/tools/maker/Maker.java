@@ -128,11 +128,15 @@ final public class Maker extends Main {
 		copyFiles(modConfig.getEditedFiles(), xMod.getEditedFilesSavePath(), true, false);
 		copyFiles(modConfig.getOriginalFiles(), xMod.getOriginalFilesSavePath(), true, true);
 		
-		Path ini = Paths.get(modConfig.getIni());
+		Path ini = null;
 		
-		if (Files.exists(ini)) {
-			copyFile(ini, Paths.get("mods", xMod.getName(), ini.getFileName().toString()), true);
-		}				
+		if (modConfig.getIni() != null) {
+			ini = Paths.get(modConfig.getIni());
+			if (Files.exists(ini)) {
+				copyFile(ini, Paths.get("mods", xMod.getName(), ini.getFileName().toString()),
+							true);
+			}
+		}
 	}
 	/**
 	 * Save either modified or original mod resources to the mod directory.
@@ -212,7 +216,10 @@ final public class Maker extends Main {
 		xMod.setName(monfig.getName());
 		xMod.setAuthor(monfig.getAuthor());
 		xMod.setDescription(monfig.getDescription());
-		xMod.setIni(Paths.get(monfig.getIni()).getFileName().toString());
+		
+		if (monfig.getIni() != null) {
+			xMod.setIni(Paths.get(monfig.getIni()).getFileName().toString());
+		}
 		
 		// Write the xml unmarshalled object
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -292,6 +299,10 @@ final public class Maker extends Main {
 				}
 				
 				f.setChanges(getUPKChanges(originalResource, mConfig.getEditedFiles().get(i)));
+				
+				if (f.getChanges().get(0).getOffset() == -1) {
+					f.setIsSameSize(false); // will replace whole resource
+				}
 				changes.add(f);
 				printXml(f);
 				++i;
@@ -341,16 +352,33 @@ final public class Maker extends Main {
 				throws DetectUpkChangesException {
 		
 		List<HexEdit> list = new ArrayList<HexEdit>();
+		StringBuilder hexStringB = null;
+		Boolean overwrite = false;
+		
 		try (InputStream modified = Files.newInputStream(modifedPath);
 					InputStream original = Files.newInputStream(originalPath)) {
 			
 			print("COMPARING ORIGINAL [" + originalPath.getFileName() + "] WITH EDITED ["
 						+ modifedPath.getFileName(), "]");
 			
+			if (Files.size(modifedPath) != Files.size(originalPath)) {
+				print("RESOURCE FILE SIZES ARE DIFFERENT ASSUMING YOU WANT TO OVERWITE RESOURCE");
+				overwrite = true;
+				hexStringB = new StringBuilder((int) Files.size(modifedPath));
+			}
+			
 			// Compare files save offset position and data change
 			int offset = 0, change;
 			
 			while ((change = modified.read()) >= 0) {
+				
+				if (overwrite) {
+					String hex = Integer.toHexString(change).toUpperCase();
+					if (hex.length() == 1) hexStringB.append("0");
+					hexStringB.append(hex);
+					++offset;
+					continue;
+				}
 				
 				// If modified not equal to original
 				if (change != original.read()) {
@@ -368,6 +396,9 @@ final public class Maker extends Main {
 			}
 		} catch (IOException e) {
 			throw new DetectUpkChangesException("IOException,InputStream,read");
+		}
+		if (overwrite) {
+			list.add(new HexEdit(null, -1, hexStringB.toString()));
 		}
 		return list;
 	}

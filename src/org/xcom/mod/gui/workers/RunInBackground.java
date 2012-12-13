@@ -2,7 +2,6 @@ package org.xcom.mod.gui.workers;
 
 import java.awt.Component;
 import java.awt.Cursor;
-import java.awt.Toolkit;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Random;

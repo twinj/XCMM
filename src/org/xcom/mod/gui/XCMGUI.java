@@ -153,7 +153,8 @@ public class XCMGUI extends Main {
 	public XCMGUI() throws HeadlessException {
 		frame = new JFrame(GUI_NAME);
 		Main.contentPane = frame;
-		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(XCMGUI.class.getResource("/org/xcom/mod/gui/icons/XCMM-096x096.png")));
+		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(
+					XCMGUI.class.getResource("/org/xcom/mod/gui/icons/XCMM-096x096.png")));
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		frame.setPreferredSize(new Dimension(800, 600));
 		
@@ -241,7 +242,7 @@ public class XCMGUI extends Main {
 						installButton.setEnabled(false);
 						makeButton.setEnabled(true);
 						FACING_STREAM = MAKE;
-						//System.setOut(MAKE);
+						// System.setOut(MAKE);
 						break;
 					case INSTALL_TAB :
 						fileManagerHome.setVisible(false);
@@ -251,7 +252,7 @@ public class XCMGUI extends Main {
 						modDirectoryTree.getTree().clearSelection();
 						modFileTree.getTree().clearSelection();
 						FACING_STREAM = INSTALL;
-						//System.setOut(INSTALL);
+						// System.setOut(INSTALL);
 						break;
 					case HOME_TAB :
 						fileManagerInstall.setVisible(false);
@@ -260,7 +261,7 @@ public class XCMGUI extends Main {
 						makeButton.setEnabled(false);
 						installButton.setEnabled(false);
 						FACING_STREAM = MAIN;
-						//System.setOut(MAIN);
+						// System.setOut(MAIN);
 					default :
 						break;
 				}
@@ -278,10 +279,10 @@ public class XCMGUI extends Main {
 		Path decompress = Paths.get(config.getCompressorPath());
 		Path extract = Paths.get(config.getExtractorPath());
 		
-		if (name.equals("unknown") || name.isEmpty() || (!isXComPathValid(config.getXcomPath()))
-					|| (!isUnPackedPathValid(config.getUnpackedPath())) 
-					|| Files.notExists(decompress)
-					|| Files.notExists(extract)) {
+		if (name.equals("unknown") || name.isEmpty()
+					|| (!isXComPathValid(config.getXcomPath()))
+					|| (!isUnPackedPathValid(config.getUnpackedPath()))
+					|| Files.notExists(decompress) || Files.notExists(extract)) {
 			
 			JOptionPane.showMessageDialog(frame, "Please set up the application correctly.",
 						"Incorrect settings.", JOptionPane.ERROR_MESSAGE);
@@ -290,7 +291,7 @@ public class XCMGUI extends Main {
 		
 		if (Files.exists(decompress)) {
 			this.getDecompressorButton.setEnabled(false);
-		}	
+		}
 		if (Files.exists(extract)) {
 			this.getExtractorButton.setEnabled(false);
 		}
@@ -591,8 +592,7 @@ public class XCMGUI extends Main {
 				
 				public List<Path> getUpks() {
 					return this.upks;
-				}
-				
+				}			
 			}
 		});
 		
@@ -625,8 +625,8 @@ public class XCMGUI extends Main {
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					java.io.File file = fc.getSelectedFile();
 					try {
-						extractWithToolCheck(file.toPath(), Paths.get("tools", "extract.exe"),
-									(JComponent) e.getSource(), true, getFrame());
+						extractWithToolCheck(file.toPath(), Paths.get("tools", "extract.exe"), null,
+									true, getFrame());
 					} catch (DownloadFailedException ex) {
 						JOptionPane.showMessageDialog(getFrame(), "The download failed...", "Error",
 									JOptionPane.ERROR_MESSAGE);
@@ -726,7 +726,7 @@ public class XCMGUI extends Main {
 						ex.printStackTrace(System.err);
 					}
 				}
-				final String url = "http://www.gildor.org/down/32/umodel/decompress.zip";
+				final String url = HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP;
 				final String saveAs = "decompress.zip";
 				
 				try {
@@ -822,7 +822,7 @@ public class XCMGUI extends Main {
 			
 			public void actionPerformed(ActionEvent e) {
 				JComponent src = (JComponent) e.getSource();
-				final String url = "http://www.gildor.org/down/32/umodel/extract.zip";
+				final String url = HTTP_WWW_GILDOR_ORG_DOWN_EXTRACT_ZIP;
 				final String saveAs = "extract.zip";
 				
 				if (Desktop.isDesktopSupported()) {
@@ -869,22 +869,17 @@ public class XCMGUI extends Main {
 				JFileChooser fc = new JFileChooser();
 				fc.setCurrentDirectory(new File(getConfig().getXcomPath(), "XComGame\\Config"));
 				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				fc.setDragEnabled(true);
-				
-				int returnVal = fc.showOpenDialog(frame);
-				
+				fc.setDragEnabled(true);				
+				int returnVal = fc.showOpenDialog(frame);		
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					java.io.File file = fc.getSelectedFile();
 					try {
 						Desktop.getDesktop().open(file);
 					} catch (IOException ex) {
-						// TODO Auto-generated catch block
 						ex.printStackTrace();
 					}
-				}
-				
-			}
-			
+				}			
+			}		
 		});
 		homeTab.add(btnOpenIni);
 		
@@ -892,7 +887,7 @@ public class XCMGUI extends Main {
 		
 		makerTab.setAlignmentY(Component.BOTTOM_ALIGNMENT);
 		makerTab.setMinimumSize(new Dimension(230, 315));
-		tabbedPane.addTab("Make", null, makerTab, "XCOM Mod maker");
+		tabbedPane.addTab("Make", null, makerTab, "XCOM Mod Maker");
 		makerTab.setLayout(new BorderLayout(0, 0));
 		
 		JPanel makerPanel = new JPanel();
@@ -1785,12 +1780,9 @@ public class XCMGUI extends Main {
 		}
 	}
 	
-	public static void run(Boolean test) {
-		
-		EventQueue.invokeLater(new Runnable() {
-			
-			public void run() {
-				
+	public static void run(Boolean test) {	
+		EventQueue.invokeLater(new Runnable() {		
+			public void run() {		
 				try {
 					new XCMGUI();
 					XCMGUI.getFrame().setVisible(true);
@@ -1818,7 +1810,8 @@ public class XCMGUI extends Main {
 			List<Path> originalFiles = filesOriginal.getListModel();
 			List<Path> editedFiles = filesEdited.getListModel();
 			
-			runMake(modName, modAuthor, modDesc, ini, originalFiles, editedFiles, src);
+			runMake(modName, modAuthor, modDesc, ini == "" ? null : ini, originalFiles,
+						editedFiles, src);
 		}
 		
 		private void runMake(String modName, String modAuthor, String modDesc, String ini,
@@ -1883,7 +1876,10 @@ public class XCMGUI extends Main {
 			modConfig.setDescription(modDesc);
 			modConfig.setOriginalFiles(originalFiles);
 			modConfig.setEditedFiles(editedFiles);
-			modConfig.setIni(ini);
+			
+			if (!ini.isEmpty()) {
+				modConfig.setIni(ini);
+			}
 			
 			List<String> originalPaths = new java.util.ArrayList<String>();
 			List<String> editedPaths = new java.util.ArrayList<String>();
@@ -1919,9 +1915,9 @@ public class XCMGUI extends Main {
 			modConfig.setEditedFilePaths(editedPaths);
 			
 			final Maker main = new Maker(modConfig);
-			RunInBackground<Object> work = new RunInBackground<Object>(frame, main, "Making mod "
-						+ modName, src) {
-
+			RunInBackground<Object> work = new RunInBackground<Object>(frame, main,
+						"Making mod " + modName, src) {
+				
 				@Override
 				public void after(Error e, Object r) {
 					
@@ -1955,7 +1951,7 @@ public class XCMGUI extends Main {
 							msg = "Could not save mod files. Try again.";
 							title = "Files could not be saved.";
 							break;
-						case MAK_UPK_FILE_NOTEXTRACTED:
+						case MAK_UPK_FILE_NOTEXTRACTED :
 							@SuppressWarnings("unchecked")
 							List<Path> uncFiles = (List<Path>) r;
 							
@@ -1965,11 +1961,15 @@ public class XCMGUI extends Main {
 								fileNames += (p.getFileName() + " ");
 							}
 							
-							int n = JOptionPane.showConfirmDialog(XCMGUI.getFrame(),
-										"Cannot continue. [" + fileNames + "] "
-													+ (uncFiles.size() > 1 ? "are" : "is")
-													+ " not extracted.\nExtraction will take some time especially if more than one file.\n\nDo you want to extract now?", title,
-										JOptionPane.YES_NO_OPTION);
+							int n = JOptionPane
+										.showConfirmDialog(
+													XCMGUI.getFrame(),
+													"Cannot continue. ["
+																+ fileNames
+																+ "] "
+																+ (uncFiles.size() > 1 ? "are" : "is")
+																+ " not extracted.\nExtraction will take some time especially if more than one file.\n\nDo you want to extract now?",
+													title, JOptionPane.YES_NO_OPTION);
 							
 							switch (n) {
 								case JOptionPane.YES_OPTION :
@@ -1979,18 +1979,14 @@ public class XCMGUI extends Main {
 									break;
 								default :
 							}
-							
 							msg = null;
-							
 						default :
 							break;
 					}
-					
 					if (msg != null) {
 						JOptionPane.showMessageDialog(frame, msg, title, JOptionPane.ERROR_MESSAGE);
 					}
 				}
-				
 			};
 			work.addPropertyChangeListener(work);
 			work.execute();
@@ -2000,8 +1996,7 @@ public class XCMGUI extends Main {
 	class InstallButtonAction implements ActionListener {
 		
 		@Override
-		public void actionPerformed(ActionEvent e) {
-			
+		public void actionPerformed(ActionEvent e) {			
 			final JComponent src = (JComponent) e.getSource();
 			
 			JFileTree tree = modDirectoryTree.getTree();
@@ -2017,95 +2012,120 @@ public class XCMGUI extends Main {
 					return;
 				default :
 					break;
-			}
-			
+			}			
 			final Installer main = new Installer(xmod);
-			RunInBackground<Object> install = new RunInBackground<Object>(frame, main,
+			final RunInBackground<Object> install = new RunInBackground<Object>(frame, main,
 						"Installing " + xmod.getName(), src) {
-				
 				@Override
-				public void after(Error e, Object ret) {
-					
-					XMod installed = ((Installer) main).getInstallPackage();
-					
-					if (installed.getIsInstalled()) {
-						int n = JOptionPane
-									.showConfirmDialog(
-												frame,
-												"If you have changed files they need to be patched into XComGame.exe.\nWould you like to run XShape on XComGame.exe?",
-												"Run XShape.", JOptionPane.YES_NO_OPTION);
-						
-						switch (n) {
-							case JOptionPane.YES_OPTION :
-								Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
-								
-								runXShapeInBackGround(exeFile, editedUpks, src, FACING_STREAM);
-								
-								return;
-							default :
-								return;
-						}
-					} else {
-						
-						String msg = null;
-						String title = e.getMsg();
-						
-						print(title, "");
-						
-						switch (e) {
-							case INS_UPK_FILE_NF :
-								msg = "Please check your settings and check the install file.";
-								break;
-							case INS_UPK_FILE_NA :
-								msg = "Upk file could not be accessed please close other programs.";
-								break;
-							case INS_UPK_RES_NF :
-								msg = "Upk resource could not be found. The mod may already be installed.";
-								break;
-							case XML_SAVE_ERROR :
-								msg = "The log could not be saved. Changes may need to be reverted.";
-								break;
-							case INS_FATAL :
-								msg = "Fatal error: The searcher threads were closed unexpectedly. Try again.";
-								break;
-							case INS_UPK_FILE_COMPRESSED :
-								@SuppressWarnings("unchecked")
-								List<Path> uncFiles = (List<Path>) ret;
-								
-								String fileNames = "";
-								
-								for (Path p : uncFiles) {
-									fileNames += (p.getFileName() + " ");
-								}
-								
-								int n = JOptionPane.showConfirmDialog(XCMGUI.getFrame(),
-											"Cannot continue. [" + fileNames + "] "
-														+ (uncFiles.size() > 1 ? "are" : "is")
-														+ " not decompressed do you want to decompress now?", title,
-											JOptionPane.YES_NO_OPTION);
-								
-								switch (n) {
-									case JOptionPane.YES_OPTION :
-										new DecompressInBackGround(uncFiles, src).execute();
-										break;
-									default :
-								}
-								
-								msg = null;
-							default :
-								break;
-						}
-						
-						if (msg != null) {
-							JOptionPane.showMessageDialog(frame, msg, title, JOptionPane.ERROR_MESSAGE);
-						}
-					}
-					setProgress(0);
+				protected void after(Error e, Object ret) {
+					afterInstallTry(this, (Installer) main, src);
 				}
 			};
 			install.addPropertyChangeListener(install);
-			install.execute();
+			install.execute();			
 		}
+	}
+	
+	public void afterInstallTry(final RunInBackground<Object> install,
+				final Installer main, final JComponent src) {
+		
+		Object ret = null;
+		try {
+			ret = install.get();
+		} catch (InterruptedException | ExecutionException ex) {}
+		
+		final XMod installed = ((Installer) main).getInstallPackage();
+		Error e= main.getError();
+		
+		if (installed.getIsInstalled()) {
+			int n = JOptionPane
+						.showConfirmDialog(
+									frame,
+									"If you have changed files they need to be patched into XComGame.exe.\nWould you like to run XShape on XComGame.exe?",
+									"Run XShape.", JOptionPane.YES_NO_OPTION);
+			
+			switch (n) {
+				case JOptionPane.YES_OPTION :
+					
+					Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
+					Path iniFile = null;
+					
+					if (installed.getIni() != null) {
+						iniFile = Paths.get("mods", installed.getName(), installed.getIni());
+						if (Files.notExists(iniFile)) {
+							iniFile = null;
+						}
+					}
+					runXShapeInBackGround(exeFile, editedUpks, iniFile, src, FACING_STREAM);
+					return;
+				default :
+					return;
+			}
+		} else {
+			
+			String msg = null;
+			String title = e.getMsg();
+			
+			print(title, "");
+			
+			switch (e) {
+				case INS_UPK_FILE_NF :
+					msg = "Please check your settings and check the install file.";
+					break;
+				case INS_UPK_FILE_NA :
+					msg = "Upk file could not be accessed please close other programs.";
+					break;
+				case INS_UPK_RES_NF :
+					msg = "Upk resource could not be found. The mod may already be installed.";
+					break;
+				case XML_SAVE_ERROR :
+					msg = "The log could not be saved. Changes may need to be reverted.";
+					break;
+				case INS_FATAL :
+					msg = "Fatal error: The searcher threads were closed unexpectedly. Try again.";
+					break;
+				case INS_UPK_FILE_COMPRESSED :
+					@SuppressWarnings("unchecked")
+					List<Path> uncFiles = (List<Path>) ret;
+					
+					String fileNames = "";
+					
+					for (Path p : uncFiles) {
+						fileNames += (p.getFileName() + " ");
+					}
+					int n = JOptionPane.showConfirmDialog(XCMGUI.getFrame(), "Cannot continue. ["
+								+ fileNames + "] " + (uncFiles.size() > 1 ? "are" : "is")
+								+ " not decompressed do you want to decompress now?", title,
+								JOptionPane.YES_NO_OPTION);
+					switch (n) {
+						case JOptionPane.YES_OPTION :
+							DecompressInBackGround dib = new DecompressInBackGround(uncFiles, src) {
+								@Override
+								protected void after() {
+									final RunInBackground<Object> install = new RunInBackground<Object>(frame, main,
+												"Trying install again..." + installed.getName(), src) {
+										@Override
+										protected void after(Error e, Object ret) {
+											afterInstallTry(this, (Installer) main, src);
+										}
+									};
+									install.addPropertyChangeListener(install);
+									install.execute();
+								}
+							};
+							dib.execute();
+							break;
+						default :
+					}
+					msg = null;
+				default :
+					break;
+			}
+			if (msg != null) {
+				JOptionPane.showMessageDialog(frame, msg, title, JOptionPane.ERROR_MESSAGE);
+			}
+		}
+		// setProgress(0);
 	}
 	
 	class XShapeButtonAction implements ActionListener {
@@ -2312,7 +2332,7 @@ public class XCMGUI extends Main {
 		if (Files.notExists(decompress)) {
 			URL url = null;
 			try {
-				url = new URL("http://www.gildor.org/down/32/umodel/decompress.zip");
+				url = new URL(HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP);
 			} catch (MalformedURLException ignore) {
 				ignore.printStackTrace(System.err);
 			}
@@ -2346,7 +2366,7 @@ public class XCMGUI extends Main {
 			
 			URL url = null;
 			try {
-				url = new URL("http://www.gildor.org/down/32/umodel/extract.zip");
+				url = new URL(HTTP_WWW_GILDOR_ORG_DOWN_EXTRACT_ZIP);
 			} catch (MalformedURLException ignore) {
 				ignore.printStackTrace(System.err);
 			}

@@ -16,11 +16,6 @@ public class ByteScannerChannel extends RandomAccessFile
 		super(file.toFile(), "rw");
 	}
 	
-	@Override
-	public void close() throws IOException {
-		
-	}
-	
 	public enum Eol {
 		CR,
 		NL,

@@ -48,11 +48,13 @@ final public class Worker implements Runnable {
 	
 	volatile byte[] resultBytes = null;
 	volatile int resultInt = -1;
+	volatile int startOffset = -1;
+	volatile int endOffset = -1;
 	volatile boolean isInstalled = false;
 	
-	public Worker(ResFile mod, byte[] buffer, int start, int end,
-			MessageDigest md, CountDownLatch mainCountDownLock,
-			CountDownLatch workerCountDownLock, Thread[] workers, int id) {
+	public Worker(ResFile mod, byte[] buffer, int start, int end, MessageDigest md,
+				CountDownLatch mainCountDownLock, CountDownLatch workerCountDownLock,
+				Thread[] workers, int id) {
 		
 		this.mod = mod;
 		this.buffer = buffer;
@@ -75,7 +77,7 @@ final public class Worker implements Runnable {
 		final byte[] searchHash = MHash.hexStringGetBytes(mod.getSearchHash());
 		
 		String work = "...";
-
+		
 		for (int j = start; j <= end; ++j) {
 			final int m = j + hashDataLength;
 			int k = j;
@@ -84,8 +86,8 @@ final public class Worker implements Runnable {
 			while (k < m) {
 				thisSum += buffer[k++] & 0xFF;
 			}
-
-			if (Thread.interrupted()) {				
+			
+			if (Thread.interrupted()) {
 				return;
 			}
 			if (thisSum == targetSum) {
@@ -102,14 +104,32 @@ final public class Worker implements Runnable {
 						print("FOUND - CHECKSUM & HASH MATCH");
 						
 						for (final HexEdit c : mod.getChanges()) {
-							print("BUFFER OFFSET [" + c.getOffset(),
-									"] CHANGED TO [" + c.getData(), "]");
+							print("BUFFER OFFSET [" + c.getOffset(), "] CHANGED TO [" + c.getData(),
+										"]");
 							
-							bufferSegmt[c.getOffset()] = DatatypeConverter.parseHexBinary(c
-									.getData())[0];						
+							if (!mod.getIsSameSize()) {
+								resultBytes = MHash.hexStringGetBytes(mod.getChanges().get(0).getData());
+								
+								print("BUFFER OFFSET START [" + j, "] END OFFSET [" + (m),
+											"] WITH [" + resultBytes.length + "] BYTES TO WRITE");
+							} else {
+								
+								bufferSegmt[c.getOffset()] = DatatypeConverter
+											.parseHexBinary(c.getData())[0];
+								
+								print("BUFFER OFFSET [" + c.getOffset(), "] CHANGED TO [" + c.getData(),
+											"]");
+							}
 						}
 						
-						resultBytes = bufferSegmt;
+						if (!mod.getIsSameSize()) {
+							// Instead of changes replace. Changes will be null in this
+							// instance so above code is skipped
+							endOffset = m;
+							
+						} else {
+							resultBytes = bufferSegmt;
+						}
 						resultInt = j;
 						isInstalled = true;
 						

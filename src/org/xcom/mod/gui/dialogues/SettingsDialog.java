@@ -52,6 +52,8 @@ import com.lipstikLF.theme.LightGrayTheme;
 
 public class SettingsDialog extends JDialog {
 	
+	private static final String HTTP_WWW_GILDOR_ORG = "http://www.gildor.org/";
+
 	private static final long serialVersionUID = 1L;
 	private JTextField textFieldName;
 	
@@ -504,7 +506,7 @@ public class SettingsDialog extends JDialog {
 							}
 							close.setEnabled(false);
 							THIS.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-							Main.openDesktopBrowser("http://www.gildor.org/");
+							Main.openDesktopBrowser(HTTP_WWW_GILDOR_ORG);
 							XCMGUI.decompressWithToolCheck(cookedCore, decompress, true);
 							XCMGUI.extractWithToolCheck(upkToExtract, extract, null, true, THIS);
 							

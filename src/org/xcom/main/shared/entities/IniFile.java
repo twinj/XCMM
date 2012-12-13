@@ -6,7 +6,6 @@ package org.xcom.main.shared.entities;
 
 import java.io.Serializable;
 import java.util.List;
-import javax.persistence.*;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -18,50 +17,28 @@ import javax.xml.bind.annotation.XmlType;
  * 
  * @author Daniel Kemp
  */
-@Entity
-@Table(name = "inifile", catalog = "xmodstore", schema = "")
 @XmlRootElement(name="IniFile")
 @XmlType(propOrder={"id", "iniFilename", "bytesSum", "searchHashLength", "searchHash", "changes", "isInstalled", "XMod"})
-@NamedQueries({
-		@NamedQuery(name = "IniFile.findAll", query = "SELECT i FROM IniFile i"),
-		@NamedQuery(name = "IniFile.findById", query = "SELECT i FROM IniFile i WHERE i.id = :id"),
-		@NamedQuery(name = "IniFile.findByUpkFilename", query = "SELECT i FROM IniFile i WHERE i.iniFilename = :iniFilename"),
-		@NamedQuery(name = "IniFile.findBySearchHashLength", query = "SELECT i FROM IniFile i WHERE i.searchHashLength = :searchHashLength"),
-		@NamedQuery(name = "IniFile.findByBytesSum", query = "SELECT i FROM IniFile i WHERE i.bytesSum = :bytesSum") })
 public class IniFile extends ModFile implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
-	@Id
-	@Basic(optional = false)
-	@Column(name = "id")
+	
 	private Integer id;
 	
-	@Basic(optional = false)
-	@Column(name = "iniFilename")
 	private String iniFilename;
-	
-	@Basic(optional = false)
-	@Column(name = "searchHashLength")
+
 	private int searchHashLength;
-	
-	@Basic(optional = false)
-	@Column(name = "bytesSum")
+
 	private int bytesSum;
-	
-	@Basic(optional = false)
-	@Lob
-	@Column(name = "searchHash")
+
 	private String searchHash;
 
-	@Basic(optional = false)
-	@Column(name = "isInstalled")
+
 	private boolean isInstalled;
 	
-	@OneToMany(cascade = CascadeType.ALL, mappedBy = "module", fetch = FetchType.EAGER)
 	private List<HexEdit> changes;
 	
-	@JoinColumn(name = "xmod", referencedColumnName = "id")
-	@ManyToOne(optional = false, fetch = FetchType.LAZY)
+	
 	private XMod xMod;
 
 	// Clean constructor required for serialisation
@@ -179,7 +156,7 @@ public class IniFile extends ModFile implements Serializable {
 
 	@Override
 	public String toString() {
-		return "org.xcom.mod.entities.IniFile[ id=" + id + " ]";
+		return "org.xcom.main.shred.entities.IniFile[ id=" + id + " ]";
 	}
 
 }

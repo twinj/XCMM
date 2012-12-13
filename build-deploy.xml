@@ -15,7 +15,7 @@
 
 			<manifest>
 				<attribute name="Main-Class" value="org.xcom.mod.console.XCMConsole" />
-				<attribute name="Class-Path" value=". lib/hibernate-jpa-2.0-api-1.0.0.Final.jar lib/lipstikLF-1.1.jar " />
+				<attribute name="Class-Path" value=". lib/lipstikLF-1.1.jar " />
 				<attribute name="Built-By" value="${user.name}" />
 				<attribute name="Release-Version" value="${version}" />
 			</manifest>
@@ -46,14 +46,15 @@
 		<mkdir dir="${dir.dist}/config" />
 		<mkdir dir="${dir.dist}/temp" />
 
-		<copy file="lib/hibernate-jpa-2.0-api-1.0.0.Final.jar" todir="${dir.dist}/lib" />
+		<!--copy file="lib/hibernate-jpa-2.0-api-1.0.0.Final.jar" todir="${dir.dist}/lib" /-->
 		<copy file="lib/lipstikLF-1.1.jar" todir="${dir.dist}/lib" />
 		<copy file="src/resources/xcmm.bat" toDir="${dir.dist}" />
 		<copy file="src/resources/usage.bat" toDir="${dir.dist}" />
+		<copy file="src/tools/decompress.exe" toDir="${dir.dist}/tools" />
+		<copy file="src/tools/extract.exe" toDir="${dir.dist}/tools" />
 		<copy file="src/resources/mods/ModEst1999v3.xmod.export.xml" toDir="${dir.dist}/mods/ModEst1999v3" />
-		<copy file="src/resources/history.xml" toDir="${dir.dist}/temp" />
 		<copy file="src/resources/mods/DefaultGameCore.ini" toDir="${dir.dist}/mods/ModEst1999v3" />
-				<copy file="src/resources/mods/install.html" toDir="${dir.dist}/mods/ModEst1999v3" />
+		<copy file="src/resources/mods/install.html" toDir="${dir.dist}/mods/ModEst1999v3" />
 
 		<delete dir="${pinstaller.dist}/lib" />
 		<delete dir="${pinstaller.dist}/mods" />
@@ -74,6 +75,8 @@
 		<copy file="src/resources/mods/install.xmod.export.xml" toDir="${pinstaller.dist}/install" />
 		<copy file="src/resources/mods/DefaultGameCore.ini" toDir="${pinstaller.dist}/install" />
 		<copy file="src/resources/mods/install.html" toDir="${pinstaller.dist}/install" />
+		<copy file="src/tools/decompress.exe" toDir="${pinstaller.dist}/tools" />
+
 
 
 	</target>

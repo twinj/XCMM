@@ -285,8 +285,7 @@ public class XShape extends Main {
 		int numPatched = 0;
 		
 		try (ByteScannerChannel sc = new ByteScannerChannel(toPatch);
-					FileChannel ch = sc.getChannel();
-					FileLock lock = ch.tryLock()) {
+					FileChannel ch = sc.getChannel()) {
 			
 			final int bufferSize = (int) (endByteOffset - startByteOffset);
 			ByteBuffer buffer = ByteBuffer.wrap(new byte[bufferSize]);
@@ -376,8 +375,7 @@ public class XShape extends Main {
 				long endByteOffset) throws IniFileException, FileNotFoundException, IOException {
 		
 		try (ByteScannerChannel sc = new ByteScannerChannel(toPatch);
-					FileChannel ch = sc.getChannel();
-					FileLock lock = ch.tryLock()) {
+					FileChannel ch = sc.getChannel()) {
 			
 			final int bufferSize = (int) (endByteOffset - startByteOffset);
 			ByteBuffer buffer = ByteBuffer.wrap(new byte[bufferSize]);
@@ -437,6 +435,7 @@ public class XShape extends Main {
 			sc.seek(startByteOffset + sPos);
 			sc.readFully(iniBackup);			
 			buffer.position((int) (ePos)); //			
+			
 			byte[] eof = new byte[(int) (ch.size() - buffer.position() - startByteOffset)];
 			sc.seek(startByteOffset + ePos);
 			sc.readFully(eof);

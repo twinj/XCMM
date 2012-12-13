@@ -25,7 +25,6 @@ import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
@@ -37,6 +36,7 @@ import org.xcom.main.shared.XmlSaveException;
 import org.xcom.main.shared.entities.InstallLog;
 import org.xcom.main.shared.entities.ResFile;
 import org.xcom.main.shared.entities.XMod;
+import org.xcom.mod.tools.shared.ByteScannerChannel;
 import org.xcom.mod.tools.shared.ExportFileAccessException;
 import org.xcom.mod.tools.shared.UpkFileAccessException;
 import org.xcom.mod.tools.shared.UpkFileNotDecompressedException;
@@ -220,7 +220,8 @@ final public class Installer extends Main {
 	 * 
 	 * @return
 	 */
-	static List<ResFile> makeUPKChanges(List<ResFile> files, Vector<Path> upkFiles) throws UpkResourceNotFoundException, UpkFileAccessException,
+	static List<ResFile> makeUPKChanges(List<ResFile> files, Vector<Path> upkFiles)
+				throws UpkResourceNotFoundException, UpkFileAccessException,
 				SearchInterruptedException {
 		
 		print("INSTALLING RESOURCE CHANGES", "");
@@ -233,12 +234,11 @@ final public class Installer extends Main {
 			Boolean found = false;
 			Boolean started = false;
 			
-			try (FileChannel fc = FileChannel.open(upkFile, StandardOpenOption.READ,
-						StandardOpenOption.WRITE);
-						FileLock lock = fc.tryLock()) {
+			try (ByteScannerChannel sc = new ByteScannerChannel(upkFile);
+						FileChannel ch = sc.getChannel();
+						FileLock lock = ch.tryLock()) {
 				started = true;
-				ByteBuffer buffer = ByteBuffer.allocate((int) (fc.size() + f
-							.getSearchHashLength()));
+				ByteBuffer buffer = ByteBuffer.wrap(new byte[(int) (ch.size())]);
 				
 				print(INSTALL, CONSOLE_SEPARATOR, "");
 				print(INSTALL, "SEARCHING [" + upkFile.getFileName(), "] FOR RESOURCE [", f
@@ -246,7 +246,7 @@ final public class Installer extends Main {
 				print("WITH CHECKSUM [" + f.getCheckSum(), "]");
 				print("WITH HASH [", MHash.toPrintString(f.getSearchHash()), "]");
 				
-				fc.read(buffer);
+				ch.read(buffer);
 				
 				try {
 					workers = doSearch(numWorkers, workers, threads, i, buffer, f);
@@ -258,17 +258,26 @@ final public class Installer extends Main {
 				for (Worker w : workers) {
 					
 					if (w.isInstalled) {
+						if (w.resultBytes != null) {
+							found = true;
+							
+							if (w.endOffset == -1) {
+								print("WRITING HEX EDITS [" + f.getResName(), "]");								
+								ch.position(w.resultInt);
+								ch.write(ByteBuffer.wrap(w.resultBytes));
+							
+							} else if (w.endOffset != -1) {
+								print("REPLACING RESOURCE [" + f.getResName(), "]");						
+								byte[] eof = new byte[(int) (ch.size() - w.endOffset)];
+								sc.seek(w.endOffset);
+								sc.readFully(eof);
+								sc.seek(w.resultInt);
+								sc.write(w.resultBytes);
+								sc.write(eof);
+							}			
+						}
+						editedUpks.add(upkFile);
 						files.get(i).setIsInstalled(true);
-					}
-					if (w.resultBytes != null) {
-						found = true;
-						
-						print("WRITING TO RESOURCE [" + f.getResName(), "]");
-						fc.position(w.resultInt);
-						fc.write(ByteBuffer.wrap(w.resultBytes));
-						
-						editedUpks.add(upkFile);					
-						break;
 					}
 				}
 				// Most likely an access issue as exists is checked earlier
@@ -297,7 +306,6 @@ final public class Installer extends Main {
 		}
 		return files;
 	}
-	
 	/**
 	 * Creates searchers and searcher threads. Does the search.
 	 * 
@@ -313,8 +321,7 @@ final public class Installer extends Main {
 	 * @throws InterruptedException
 	 */
 	static Worker[] doSearch(int threadsNum, Worker[] workers, Thread[] threads, int i,
-				ByteBuffer buffer, ResFile f)
-				throws InterruptedException {
+				ByteBuffer buffer, ResFile f) throws InterruptedException {
 		
 		final CountDownLatch mainCDLatch = new CountDownLatch(1);
 		final CountDownLatch workerCDLatch = new CountDownLatch(threadsNum);
