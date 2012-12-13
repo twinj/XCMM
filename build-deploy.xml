@@ -50,8 +50,8 @@
 		<copy file="lib/lipstikLF-1.1.jar" todir="${dir.dist}/lib" />
 		<copy file="src/resources/xcmm.bat" toDir="${dir.dist}" />
 		<copy file="src/resources/usage.bat" toDir="${dir.dist}" />
-		<copy file="src/tools/decompress.exe" toDir="${dir.dist}/tools" />
-		<copy file="src/tools/extract.exe" toDir="${dir.dist}/tools" />
+		<copy file="tools/decompress.exe" toDir="${dir.dist}/tools" />
+		<copy file="tools/extract.exe" toDir="${dir.dist}/tools" />
 		<copy file="src/resources/mods/ModEst1999v3.xmod.export.xml" toDir="${dir.dist}/mods/ModEst1999v3" />
 		<copy file="src/resources/mods/DefaultGameCore.ini" toDir="${dir.dist}/mods/ModEst1999v3" />
 		<copy file="src/resources/mods/install.html" toDir="${dir.dist}/mods/ModEst1999v3" />
@@ -75,7 +75,7 @@
 		<copy file="src/resources/mods/install.xmod.export.xml" toDir="${pinstaller.dist}/install" />
 		<copy file="src/resources/mods/DefaultGameCore.ini" toDir="${pinstaller.dist}/install" />
 		<copy file="src/resources/mods/install.html" toDir="${pinstaller.dist}/install" />
-		<copy file="src/tools/decompress.exe" toDir="${pinstaller.dist}/tools" />
+		<copy file="tools/decompress.exe" toDir="${pinstaller.dist}/tools" />
 
 
 

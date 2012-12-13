@@ -36,16 +36,20 @@ import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipException;
 
 import javax.swing.Box;
+import javax.swing.GroupLayout;
+import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
+import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
@@ -72,21 +76,13 @@ import org.xcom.mod.gui.workers.RunInBackground;
 import org.xcom.mod.tools.installer.Installer;
 import org.xcom.mod.tools.xshape.MHash;
 import org.xcom.mod.tools.xshape.XShape;
-import java.awt.FlowLayout;
-import javax.swing.JLabel;
-import javax.swing.JSeparator;
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.LayoutStyle.ComponentPlacement;
 
 public class PInstall extends Main {
 	
 	
 	private JButton close;
 	
-	private static JFrame frame;
+	private static JFrame frmXcmmPinstallerVcbeta;
 	private XMod mod = null;
 	
 	Path modPath = Paths.get("install", "install.xmod.export.xml");
@@ -100,16 +96,18 @@ public class PInstall extends Main {
 	 * @wbp.parser.entryPoint
 	 */
 	public PInstall() {
-		frame = new JFrame();
-		Main.contentPane = frame;
-		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		frame.setIconImage(Toolkit.getDefaultToolkit().getImage(
+		frmXcmmPinstallerVcbeta = new JFrame();
+		frmXcmmPinstallerVcbeta.setMaximumSize(new Dimension(600, 2147483647));
+		frmXcmmPinstallerVcbeta.setPreferredSize(new Dimension(275, 360));
+		Main.contentPane = frmXcmmPinstallerVcbeta;
+		frmXcmmPinstallerVcbeta.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frmXcmmPinstallerVcbeta.setIconImage(Toolkit.getDefaultToolkit().getImage(
 					PInstall.class.getResource("/org/xcom/pinstaller/gui/XCMM-096x096.png")));
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {}
 		
-		frame.addComponentListener(new ComponentAdapter() {
+		frmXcmmPinstallerVcbeta.addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentShown(ComponentEvent e) {
 				xcomInstallPanel.getTextField().setText(config.getXcomPath());
@@ -127,23 +125,23 @@ public class PInstall extends Main {
 				}
 			}
 		});
-		frame.setMinimumSize(new Dimension(275, 275));
+		frmXcmmPinstallerVcbeta.setMinimumSize(new Dimension(275, 360));
 		
 		initUI();
 		
 		MAIN = Stream.getStream(MAIN_DELEGATE, hos);
 		INSTALL = Stream.getStream(INSTALL_DELEGATE, hos);
-		frame.setLocation(200, 200);
-		frame.pack();
+		frmXcmmPinstallerVcbeta.setLocation(200, 200);
+		frmXcmmPinstallerVcbeta.pack();
 		
 	}
 	
 	public final void initUI() {
-		frame.setTitle("XCMM Installer");
-		frame.getContentPane().setLayout(new BorderLayout(0, 0));
+		frmXcmmPinstallerVcbeta.setTitle("XCMM PInstaller: v-1.07c-BETA");
+		frmXcmmPinstallerVcbeta.getContentPane().setLayout(new BorderLayout(0, 0));
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		frame.getContentPane().add(tabbedPane, BorderLayout.CENTER);
+		frmXcmmPinstallerVcbeta.getContentPane().add(tabbedPane, BorderLayout.CENTER);
 		
 		JPanel aboutModPanel = new JPanel();
 		tabbedPane.addTab("XMod", null, aboutModPanel, null);
@@ -172,18 +170,19 @@ public class PInstall extends Main {
 			}
 		});
 		
-		//if (Files.exists(Paths.get("install", "install.html"))) {
-			//try {
-				//dtrpnWidthHeight.setPage(Paths.get("install", "install.html").toUri().toURL());
-			//} catch (IOException ex) {}
-		//} else {
+		if (Files.exists(Paths.get("install", "install.html"))) {
+			try {
+				dtrpnWidthHeight.setPage(Paths.get("install", "install.html").toUri().toURL());
+			} catch (IOException ex) {}
+		} else {
 			
 			dtrpnWidthHeight
 						.setText("<html><p>"
+									+ "'  align='left' width=128 height=128>"
 									+ "<a href='https://github.com/twinj/XCMM'>GitHub</a></p>"
 									+ "<a href='http://forums.nexusmods.com/index.php?/topic/839384-xcmm-mod-manager-in-java/'>Forums</a>"
 									+ "</img></html>");
-	//	}
+		}
 		
 		Box horizontalBox_3 = Box.createHorizontalBox();
 		aboutModPanel.add(horizontalBox_3, BorderLayout.SOUTH);
@@ -192,7 +191,7 @@ public class PInstall extends Main {
 		btnNewButton.addActionListener(new SaveAction());
 		horizontalBox_3.add(btnNewButton);
 		
-		JLabel lblNewLabel = new JLabel("  V:1.07c-BETA");
+		JLabel lblNewLabel = new JLabel("");
 		horizontalBox_3.add(lblNewLabel);
 		
 		Component horizontalGlue_4 = Box.createHorizontalGlue();
@@ -208,7 +207,7 @@ public class PInstall extends Main {
 				
 				int n = JOptionPane
 							.showConfirmDialog(
-										frame.getContentPane(),
+										frmXcmmPinstallerVcbeta.getContentPane(),
 										"This will replace existing resources in your XCom Installation that have been changed by a mod.\n\nDo you want to continue?",
 										"Restore Game.", JOptionPane.YES_NO_OPTION);
 				
@@ -235,7 +234,7 @@ public class PInstall extends Main {
 							
 						} else {}
 						
-						JOptionPane.showMessageDialog(frame.getContentPane(), msg, title, op);
+						JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg, title, op);
 						
 						if (f != null && (f.getNumMatches() > 0)) {
 							
@@ -271,8 +270,7 @@ public class PInstall extends Main {
 					print("COOKED PATH [" + cooked, "]");
 					matcherUSize = FileSystems.getDefault().getPathMatcher("glob:" + "*" + uSize);
 					matcherOrigCompress = FileSystems.getDefault().getPathMatcher(
-								"glob:" + "*" + orig_Compress);
-					
+								"glob:" + "*" + orig_Compress);				
 				}
 				
 				// Compares the glob pattern against
@@ -351,33 +349,61 @@ public class PInstall extends Main {
 		JPanel settingsTab = new JPanel();
 		tabbedPane.addTab("Settings", null, settingsTab, null);
 		tabbedPane.setEnabledAt(1, true);
-		GridBagLayout gbl_settingsTab = new GridBagLayout();
-		gbl_settingsTab.columnWidths = new int[]{329, 0};
-		gbl_settingsTab.rowHeights = new int[]{284, 0};
-		gbl_settingsTab.columnWeights = new double[]{0.0, Double.MIN_VALUE};
-		gbl_settingsTab.rowWeights = new double[]{0.0, Double.MIN_VALUE};
-		settingsTab.setLayout(gbl_settingsTab);
+		settingsTab.setLayout(new BorderLayout(0, 0));
 		
 		JPanel generalTab = new JPanel();
-		generalTab.setAlignmentY(Component.TOP_ALIGNMENT);
-		generalTab.setAlignmentX(Component.RIGHT_ALIGNMENT);
-		GridBagConstraints gbc_generalTab = new GridBagConstraints();
-		gbc_generalTab.fill = GridBagConstraints.BOTH;
-		gbc_generalTab.gridx = 0;
-		gbc_generalTab.gridy = 0;
-		settingsTab.add(generalTab, gbc_generalTab);
+		generalTab.setMaximumSize(new Dimension(400, 32767));
+		settingsTab.add(generalTab);
 		generalTab.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		
 		xcomInstallPanel = new GetFilePanel("XCOM installation path:", null,
 					JFileChooser.DIRECTORIES_ONLY);
+		xcomInstallPanel.setMaximumSize(new Dimension(400, 2147483647));
+		xcomInstallPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 		
 		gilderDecomPanel = new GetFilePanel("Gildor's Unreal Decompresor:", new java.io.File(
 					System.getProperty("user.dir")), JFileChooser.FILES_ONLY);
+		gilderDecomPanel.setMaximumSize(new Dimension(400, 2147483647));
+		gilderDecomPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 		
 		chooseModPanel = new GetFilePanel("Choose a mod:", new java.io.File(USER_DIR
 					+ "\\mods"), JFileChooser.FILES_ONLY);
+		chooseModPanel.setMaximumSize(new Dimension(400, 2147483647));
+		chooseModPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+		chooseModPanel.setAlignmentY(Component.BOTTOM_ALIGNMENT);
+		GroupLayout gl_generalTab = new GroupLayout(generalTab);
+		gl_generalTab.setHorizontalGroup(
+			gl_generalTab.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_generalTab.createSequentialGroup()
+					.addGap(2)
+					.addGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(xcomInstallPanel, GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
+							.addPreferredGap(ComponentPlacement.RELATED))
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addComponent(gilderDecomPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+							.addPreferredGap(ComponentPlacement.RELATED))
+						.addGroup(gl_generalTab.createSequentialGroup()
+							.addComponent(chooseModPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+							.addPreferredGap(ComponentPlacement.RELATED)))
+					.addGap(3))
+		);
+		gl_generalTab.setVerticalGroup(
+			gl_generalTab.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_generalTab.createSequentialGroup()
+					.addGap(5)
+					.addComponent(xcomInstallPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
+					.addGap(5)
+					.addComponent(gilderDecomPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
+					.addComponent(chooseModPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
+					.addGap(5))
+		);
+		generalTab.setLayout(gl_generalTab);
 		
 		Box horizontalBox_2 = Box.createHorizontalBox();
+		settingsTab.add(horizontalBox_2, BorderLayout.SOUTH);
 		
 		JButton btnVerifySettings = new JButton("Install");
 		horizontalBox_2.add(btnVerifySettings);
@@ -390,55 +416,11 @@ public class PInstall extends Main {
 		close.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent event) {
-				frame.dispose();
+				frmXcmmPinstallerVcbeta.dispose();
 			}
 		});
 		
 		close.setAlignmentX(0.5f);
-		
-		JSeparator separator = new JSeparator();
-		separator.setPreferredSize(new Dimension(86, 2));
-		GroupLayout gl_generalTab = new GroupLayout(generalTab);
-		gl_generalTab.setHorizontalGroup(
-			gl_generalTab.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_generalTab.createSequentialGroup()
-					.addGap(3)
-					.addGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addComponent(xcomInstallPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
-							.addGap(4))
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addComponent(gilderDecomPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
-							.addGap(4))
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addGap(68)
-							.addComponent(separator, GroupLayout.PREFERRED_SIZE, 1, GroupLayout.PREFERRED_SIZE))
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addComponent(chooseModPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
-							.addGap(4))
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addComponent(horizontalBox_2, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
-							.addGap(4)))
-					.addGap(78))
-		);
-		gl_generalTab.setVerticalGroup(
-			gl_generalTab.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_generalTab.createSequentialGroup()
-					.addGap(6)
-					.addComponent(xcomInstallPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
-					.addGap(8)
-					.addComponent(gilderDecomPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
-					.addGap(11)
-					.addGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addGap(48)
-							.addComponent(separator, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-						.addComponent(chooseModPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE))
-					.addPreferredGap(ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
-					.addComponent(horizontalBox_2, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE)
-					.addGap(71))
-		);
-		generalTab.setLayout(gl_generalTab);
 		btnVerifySettings.addActionListener(new SaveAction());
 		
 		JScrollPane outPutTab = new JScrollPane();
@@ -538,7 +520,7 @@ public class PInstall extends Main {
 				ex.printStackTrace(System.err);
 			}
 			if (msg != null) {
-				JOptionPane.showMessageDialog(frame.getContentPane(), msg, title, op);
+				JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg, title, op);
 			}
 			
 			if (isOk) {
@@ -550,7 +532,7 @@ public class PInstall extends Main {
 					try {
 						mod = (XMod) u.unmarshal(modPath.toFile());
 					} catch (JAXBException ex) {
-						JOptionPane.showMessageDialog(frame.getContentPane(),
+						JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(),
 									"Cannot continue. Mod file could not be marshalled.", "Installer",
 									JOptionPane.ERROR_MESSAGE);
 						ex.printStackTrace(System.err);
@@ -565,7 +547,7 @@ public class PInstall extends Main {
 					}
 				}
 				
-				int n = JOptionPane.showConfirmDialog(frame.getContentPane(),
+				int n = JOptionPane.showConfirmDialog(frmXcmmPinstallerVcbeta.getContentPane(),
 							"Confirm to install [" + mod.getName() + "]", "Installer",
 							JOptionPane.OK_CANCEL_OPTION);
 				
@@ -580,7 +562,7 @@ public class PInstall extends Main {
 				
 				final Path iniFile = iniPath;
 				
-				RunInBackground<Object> install = new RunInBackground<Object>(frame,
+				RunInBackground<Object> install = new RunInBackground<Object>(frmXcmmPinstallerVcbeta,
 							new Installer(modPath.toFile()), "Installing " + mod.getName(), src) {
 					
 					@Override
@@ -638,18 +620,18 @@ public class PInstall extends Main {
 									
 									JOptionPane
 												.showMessageDialog(
-															frame.getContentPane(),
+															frmXcmmPinstallerVcbeta.getContentPane(),
 															"Cannot continue. ["
 																		+ fileNames
 																		+ "] "
 																		+ (uncFiles.size() > 1 ? "are" : "is")
-																		+ " not decompressed.\nThe system will decompress the files now.\n\nAfter it has finished restart the installaltion.",
+																		+ " not decompressed.\nThe system will decompress the files now.\n\nWhen done the installtion will continue.",
 															title, JOptionPane.WARNING_MESSAGE);
 									
 									DecompressInBackGround dib = new DecompressInBackGround(uncFiles, src) {
 										@Override
 										protected void after() {
-											final RunInBackground<Object> install = new RunInBackground<Object>(frame, main,
+											final RunInBackground<Object> install = new RunInBackground<Object>(frmXcmmPinstallerVcbeta, main,
 														"Trying install again..." + installed.getName(), src) {
 												@Override
 												protected void after(Error e, Object ret) {
@@ -667,7 +649,7 @@ public class PInstall extends Main {
 									break;
 							}
 							if (msg != null) {
-								JOptionPane.showMessageDialog(frame.getContentPane(), msg, title,
+								JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg, title,
 											JOptionPane.ERROR_MESSAGE);
 							}
 						}
@@ -686,7 +668,7 @@ public class PInstall extends Main {
 			
 			int n1 = JOptionPane
 						.showConfirmDialog(
-									frame.getContentPane(),
+									frmXcmmPinstallerVcbeta.getContentPane(),
 									"To get started XCMM Installer can download Gildor's Unreal decompressor.\nOr you can select its location.\n\nWould you like XCMM to download?",
 									"Download Decompressor?", JOptionPane.YES_NO_OPTION);
 			
@@ -699,7 +681,7 @@ public class PInstall extends Main {
 								src.setEnabled(false);
 							}
 							close.setEnabled(false);
-							frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+							frmXcmmPinstallerVcbeta.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 							Main.openDesktopBrowser(HTTP_WWW_GILDOR_ORG);
 							decompressWithToolCheck(null, decompress, true);
 							return null;
@@ -711,7 +693,7 @@ public class PInstall extends Main {
 							} catch (InterruptedException | ExecutionException ex) {
 								ex.printStackTrace();
 							}
-							frame.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+							frmXcmmPinstallerVcbeta.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 							if (src != null) {
 								src.setEnabled(true);
 							}
@@ -727,30 +709,26 @@ public class PInstall extends Main {
 	}
 
 	public static void main(String[] args) {
-		Path path = Paths.get(Config.PATH);
-		
+		Path path = Paths.get(Config.PATH);	
 		try {
 			md = MessageDigest.getInstance(MHash.ALGORITHM);
 			jc = JAXBContext.newInstance(Config.class, HexEdit.class, ModConfig.class,
 						ResFile.class, XMod.class);
 			u = jc.createUnmarshaller();
 			m = jc.createMarshaller();
-			m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-			
+			m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);			
 		} catch (Exception e) {
 			print("FATAL ERROR: Could not create services.\n");
 			e.printStackTrace(System.err);
 			System.exit(Error.SYS_SERVICE_CREATE_FAIL.ordinal());
-		}
-		
+		}		
 		if (Files.exists(path)) {
 			try {
 				PInstall.config = (Config) PInstall.u.unmarshal(path.toFile());
 			} catch (JAXBException ex) {}
 		} else {
 			PInstall.config = new Config();
-		}
-		
+		}		
 		PInstall.runc();
 	}
 	
