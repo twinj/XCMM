@@ -32,7 +32,7 @@ import org.xcom.mod.gui.JFileTree.FileTreeNode;
  * @author Kirill Grouchnikov
  */
 @SuppressWarnings("rawtypes")
-public class FileTreePanel extends JList {
+public class FileTreePanel extends JFileTree {
 	/**
 	 * 
 	 */
@@ -240,40 +240,37 @@ public class FileTreePanel extends JList {
 	/**
 	 * The file tree.
 	 */
-	private JTree tree;
+	//private JTree tree;
 	private Boolean installTree;
 
 	/**
 	 * Creates the file tree panel.
 	 */
-	public FileTreePanel(Boolean installTree) {
-		this.installTree = installTree;
-		
-		this.setLayout(new BorderLayout());
-
+	private FileTreePanel(FileTreeNode rootTreeNode, Boolean installTree, List<File> roots) {
+		super(rootTreeNode);
+		this.installTree = installTree;	
+		setLayout(new BorderLayout());
+		this.roots = roots;	
+		setDragEnabled(true);
+		setRootVisible(false);
+		setCellRenderer(new FileTreeCellRenderer(installTree));		
+	}
+	
+	public static FileTreePanel createTree(Boolean installTree) {
+		List<File> roots = null;
 		try {
-			roots = getValidMods();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			roots = getValidMods(installTree);
+		} catch (IOException ex) {
 		}
-		// File[] roots = new File[12];
 		FileTreeNode rootTreeNode = new FileTreeNode(roots.toArray(new File[roots.size()]));
 
-		this.tree = new JFileTree(rootTreeNode);
-		
-		tree.setDragEnabled(true);
-		add(tree, BorderLayout.NORTH);
-		tree.setRootVisible(false);
-		this.tree.setCellRenderer(new FileTreeCellRenderer(installTree));
-		
-		
+		return new FileTreePanel(rootTreeNode, installTree, roots);
 	}
 
-	private List<File> getValidMods() throws IOException {
+	private static List<File> getValidMods(Boolean installTree) throws IOException {
 
 		Path basePath = Config.getModPath();
-		Finder find = new Finder("*.xmod.export.xml", this.installTree);
+		Finder find = new Finder("*.xmod.export.xml", installTree);
 
 		Files.walkFileTree(basePath, find);
 		return find.getModHomePaths();
@@ -281,15 +278,14 @@ public class FileTreePanel extends JList {
 	}
 	
 	public JFileTree getTree() {
-		return (JFileTree) this.tree;
+		return (JFileTree) this;
 	}
 	
 	public void resetMods() {
 			try {
-				roots = getValidMods();
-				this.tree.setModel(new DefaultTreeModel(new FileTreeNode(roots.toArray(new File[roots.size()])), false));
+				roots = getValidMods(this.installTree);
+				this.setModel(new DefaultTreeModel(new FileTreeNode(roots.toArray(new File[roots.size()])), false));
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}	
 	}
@@ -297,10 +293,5 @@ public class FileTreePanel extends JList {
 	public List<File> getRoots() {
 		return roots;
 	}
-	
-	
-	
-	
-	
 
 }

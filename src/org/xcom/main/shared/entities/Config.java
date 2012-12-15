@@ -31,7 +31,7 @@ public class Config implements Serializable, ModXml {
 
     private final static String DEFAULT_XCOM_PATH = "C:\\Program Files (x86)\\Steam\\SteamApps\\common\\XCom-Enemy-Unknown";
     private final static String DEFAULT_UNPACKED_PATH = System.getProperty("user.dir") + "\\unpacked";
-    private final static String DEFAULT_COOKED_PATH = "C:\\Program Files (x86)\\Steam\\SteamApps\\common\\XCom-Enemy-Unknown\\XComGame\\CookedPCConsole";
+    private final static String DEFAULT_COOKED_RELATIVE_PATH = "\\XComGame\\CookedPCConsole";
     private final static String DEFAULT_COMPRESSOR_PATH = System.getProperty("user.dir") + "\\tools\\decompress.exe";
     private final static String DEFAULT_EXTRACTOR_PATH = System.getProperty("user.dir") + "\\tools\\extract.exe";
     //private final static String DEFAULT_COOKED_BACKUP = "";
@@ -104,7 +104,7 @@ public class Config implements Serializable, ModXml {
     @XmlTransient
     public Path getCookedPath() {
 
-        return Paths.get(DEFAULT_COOKED_PATH).toAbsolutePath();
+        return Paths.get(getXcomPath(), DEFAULT_COOKED_RELATIVE_PATH).toAbsolutePath();
     }
 
     @Override

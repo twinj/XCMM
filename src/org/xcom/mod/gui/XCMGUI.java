@@ -425,18 +425,6 @@ public class XCMGUI extends Main {
 		homeTab.setOpaque(false);
 		tabbedPane.addTab("Home", null, homeTab, "XCom Edit home");
 		
-		JButton btnGetFileHash = new JButton("Cooked");
-		btnGetFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnGetFileHash.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-		btnGetFileHash.addActionListener(new GetHashButton(frame) {
-			
-			@Override
-			protected File getFile() {
-				
-				return config.getCookedPath().toFile();
-			}
-		});
-		
 		JSeparator separator_2 = new JSeparator();
 		separator_2.setPreferredSize(new Dimension(200, 3));
 		homeTab.add(separator_2);
@@ -674,67 +662,6 @@ public class XCMGUI extends Main {
 		homeTab.add(btnDecompressUpk);
 		homeTab.add(btnUnpack);
 		
-		JSeparator separator_5 = new JSeparator();
-		separator_5.setPreferredSize(new Dimension(200, 3));
-		homeTab.add(separator_5);
-		
-		Component rigidArea_1 = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea_1);
-		
-		JLabel lblNewLabel_2 = new JLabel("Calculate SHA file hash");
-		homeTab.add(lblNewLabel_2);
-		
-		Component rigidArea = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea);
-		homeTab.add(btnGetFileHash);
-		
-		JButton btnGetUnpackedFile = new JButton("Unpacked");
-		btnGetUnpackedFile.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnGetUnpackedFile.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-		btnGetUnpackedFile.addActionListener(new GetHashButton(frame) {
-			
-			@Override
-			protected File getFile() {
-				return new File(config.getUnpackedPath());
-			}
-		});
-		homeTab.add(btnGetUnpackedFile);
-		
-		JButton btnGetModFileHash = new JButton("Mods");
-		btnGetModFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnGetModFileHash.addActionListener(new GetHashButton(frame) {
-			
-			@Override
-			protected File getFile() {
-				return Config.getModPath().toFile();
-			}
-		});
-		homeTab.add(btnGetModFileHash);
-		
-		getDecompressorButton = new JButton("Decompressor");
-		getDecompressorButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-		
-		getDecompressorButton.addActionListener(new ActionListener() {
-			
-			public void actionPerformed(ActionEvent e) {
-				JComponent src = (JComponent) e.getSource();
-				
-				if (Desktop.isDesktopSupported()) {
-					try {
-						Desktop.getDesktop().browse(new URL("http://www.gildor.org/").toURI());
-					} catch (IOException | URISyntaxException ex) {
-						ex.printStackTrace(System.err);
-					}
-				}
-				final String url = HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP;
-				final String saveAs = "decompress.zip";
-				
-				try {
-					downloadZippedTool(url, saveAs, src, null);
-				} catch (MalformedURLException ex) {}
-			}
-		});
-		
 		JSeparator separator_3 = new JSeparator();
 		separator_3.setPreferredSize(new Dimension(200, 3));
 		homeTab.add(separator_3);
@@ -802,18 +729,111 @@ public class XCMGUI extends Main {
 		verticalStrut_7.setPreferredSize(new Dimension(0, 5));
 		verticalBox_2.add(verticalStrut_7);
 		
-		JSeparator separator_4 = new JSeparator();
-		separator_4.setPreferredSize(new Dimension(200, 3));
-		homeTab.add(separator_4);
+		JButton btnOpenIni = new JButton("Open Ini");
+		btnOpenIni.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc = new JFileChooser();
+				fc.setCurrentDirectory(new File(getConfig().getXcomPath(), "XComGame\\Config"));
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				fc.setDragEnabled(true);				
+				int returnVal = fc.showOpenDialog(frame);		
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					java.io.File file = fc.getSelectedFile();
+					try {
+						Desktop.getDesktop().open(file);
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}			
+			}		
+		});
+		homeTab.add(btnOpenIni);
 		
-		Component rigidArea_2 = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea_2);
+		JSeparator separator_5 = new JSeparator();
+		separator_5.setPreferredSize(new Dimension(200, 3));
+		homeTab.add(separator_5);
+		
+		Component rigidArea_1 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_1);
+		
+		JLabel lblNewLabel_2 = new JLabel("Calculate SHA file hash");
+		homeTab.add(lblNewLabel_2);
+		
+		Component rigidArea = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea);
+		
+		JButton btnGetFileHash = new JButton("Cooked");
+		btnGetFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnGetFileHash.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		btnGetFileHash.addActionListener(new GetHashButton(frame) {
+			
+			@Override
+			protected File getFile() {
+				
+				return config.getCookedPath().toFile();
+			}
+		});
+		homeTab.add(btnGetFileHash);
+		
+		JButton btnGetUnpackedFile = new JButton("Unpacked");
+		btnGetUnpackedFile.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnGetUnpackedFile.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		btnGetUnpackedFile.addActionListener(new GetHashButton(frame) {
+			
+			@Override
+			protected File getFile() {
+				return new File(config.getUnpackedPath());
+			}
+		});
+		homeTab.add(btnGetUnpackedFile);
+		
+		JButton btnGetModFileHash = new JButton("Mods");
+		btnGetModFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnGetModFileHash.addActionListener(new GetHashButton(frame) {
+			
+			@Override
+			protected File getFile() {
+				return Config.getModPath().toFile();
+			}
+		});
+		homeTab.add(btnGetModFileHash);
+		
+		JSeparator separator_1 = new JSeparator();
+		separator_1.setPreferredSize(new Dimension(200, 3));
+		homeTab.add(separator_1);
+		
+		Component rigidArea_3 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_3);
 		
 		JLabel lblDownloadTools = new JLabel("Download Gildor's Unreal tools");
 		homeTab.add(lblDownloadTools);
 		
-		Component rigidArea_3 = Box.createRigidArea(new Dimension(20, 20));
-		homeTab.add(rigidArea_3);
+		Component rigidArea_2 = Box.createRigidArea(new Dimension(20, 20));
+		homeTab.add(rigidArea_2);
+		
+		getDecompressorButton = new JButton("Decompressor");
+		getDecompressorButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+		
+		getDecompressorButton.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				JComponent src = (JComponent) e.getSource();
+				
+				if (Desktop.isDesktopSupported()) {
+					try {
+						Desktop.getDesktop().browse(new URL("http://www.gildor.org/").toURI());
+					} catch (IOException | URISyntaxException ex) {
+						ex.printStackTrace(System.err);
+					}
+				}
+				final String url = HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP;
+				final String saveAs = "decompress.zip";
+				
+				try {
+					downloadZippedTool(url, saveAs, src, null);
+				} catch (MalformedURLException ex) {}
+			}
+		});
 		homeTab.add(getDecompressorButton);
 		
 		getExtractorButton = new JButton("Extractor");
@@ -858,30 +878,6 @@ public class XCMGUI extends Main {
 		});
 		gildorsLinkButton.setBorderPainted(false);
 		homeTab.add(gildorsLinkButton);
-		
-		JSeparator separator_1 = new JSeparator();
-		separator_1.setPreferredSize(new Dimension(200, 3));
-		homeTab.add(separator_1);
-		
-		JButton btnOpenIni = new JButton("Open Ini");
-		btnOpenIni.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc = new JFileChooser();
-				fc.setCurrentDirectory(new File(getConfig().getXcomPath(), "XComGame\\Config"));
-				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				fc.setDragEnabled(true);				
-				int returnVal = fc.showOpenDialog(frame);		
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					java.io.File file = fc.getSelectedFile();
-					try {
-						Desktop.getDesktop().open(file);
-					} catch (IOException ex) {
-						ex.printStackTrace();
-					}
-				}			
-			}		
-		});
-		homeTab.add(btnOpenIni);
 		
 		JPanel makerTab = new JPanel();
 		
@@ -962,19 +958,11 @@ public class XCMGUI extends Main {
 		verticalStrut.setMinimumSize(new Dimension(0, 5));
 		
 		JSplitPane splitPane = new JSplitPane();
-		splitPane.setBounds(10, 186, 200, 195);
+		splitPane.setBounds(10, 186, 200, 285);
 		makerPanel.add(splitPane);
 		splitPane.setBorder(null);
 		splitPane.setOneTouchExpandable(true);
 		splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
-		
-		fieldModDescription = new JEditorPane();
-		fieldModDescription.setMinimumSize(new Dimension(6, 46));
-		fieldModDescription.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		splitPane.setLeftComponent(fieldModDescription);
-		fieldModDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
-		fieldModDescription.setPreferredSize(new Dimension(110, 20));
-		fieldModDescription.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		
 		JPanel panel = new JPanel();
 		panel.setPreferredSize(new Dimension(10, 100));
@@ -984,6 +972,18 @@ public class XCMGUI extends Main {
 		separator.setPreferredSize(new Dimension(200, 3));
 		separator.setMinimumSize(new Dimension(200, 0));
 		panel.add(separator);
+		
+		JScrollPane scrollPane = new JScrollPane();
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		splitPane.setLeftComponent(scrollPane);
+		
+		fieldModDescription = new JEditorPane();
+		scrollPane.setViewportView(fieldModDescription);
+		fieldModDescription.setMinimumSize(new Dimension(6, 90));
+		fieldModDescription.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		fieldModDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
+		fieldModDescription.setPreferredSize(new Dimension(110, 135));
+		fieldModDescription.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		
 		JPanel installerTab = new JPanel();
 		
@@ -1061,20 +1061,8 @@ public class XCMGUI extends Main {
 		splitPane_1.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		splitPane_1.setOneTouchExpandable(true);
 		splitPane_1.setBorder(null);
-		splitPane_1.setBounds(10, 130, 200, 195);
+		splitPane_1.setBounds(10, 130, 200, 329);
 		installPanel.add(splitPane_1);
-		
-		final JEditorPane installModDescription = new JEditorPane();
-		installModDescription.setEditable(false);
-		installModDescription.setBackground(SystemColor.info);
-		installModDescription.setPreferredSize(new Dimension(110, 20));
-		installModDescription.setMinimumSize(new Dimension(6, 46));
-		installModDescription.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		installModDescription.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null,
-		
-		null));
-		installModDescription.setAlignmentX(0.0f);
-		splitPane_1.setLeftComponent(installModDescription);
 		
 		JPanel panel_1 = new JPanel();
 		panel_1.setPreferredSize(new Dimension(10, 100));
@@ -1084,6 +1072,21 @@ public class XCMGUI extends Main {
 		separator_6.setPreferredSize(new Dimension(200, 3));
 		separator_6.setMinimumSize(new Dimension(200, 0));
 		panel_1.add(separator_6);
+		
+		JScrollPane scrollPane_1 = new JScrollPane();
+		splitPane_1.setLeftComponent(scrollPane_1);
+		
+		final JEditorPane installModDescription = new JEditorPane();
+		scrollPane_1.setViewportView(installModDescription);
+		installModDescription.setEditable(false);
+		installModDescription.setBackground(SystemColor.info);
+		installModDescription.setPreferredSize(new Dimension(110, 150));
+		installModDescription.setMinimumSize(new Dimension(6, 150));
+		installModDescription.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		installModDescription.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null,
+		
+		null));
+		installModDescription.setAlignmentX(0.0f);
 		
 		JPanel centre = new JPanel();
 		frame.getContentPane().add(centre, BorderLayout.CENTER);
@@ -1577,13 +1580,15 @@ public class XCMGUI extends Main {
 		modDirectiresPane.setLayout(new BorderLayout(0, 0));
 		
 		JScrollPane scrollPDirectoryTree = new JScrollPane();
+		scrollPDirectoryTree.setAutoscrolls(true);
 		scrollPDirectoryTree
 					.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		modDirectiresPane.add(scrollPDirectoryTree, BorderLayout.CENTER);
 		scrollPDirectoryTree.setPreferredSize(new Dimension(3, 223));
 		scrollPDirectoryTree.setMinimumSize(new Dimension(22, 222));
 		
-		modDirectoryTree = new FileTreePanel(true);
+		modDirectoryTree = FileTreePanel.createTree(true);
+		modDirectoryTree.getTree().setVisibleRowCount(1);
 		scrollPDirectoryTree.setViewportView(modDirectoryTree);
 		
 		modDirectoryTree.getTree().addTreeSelectionListener(new TreeSelectionListener() {
@@ -1637,13 +1642,17 @@ public class XCMGUI extends Main {
 		modFilesPane.setLayout(new BorderLayout(0, 0));
 		
 		JScrollPane scrollPaneFileTree = new JScrollPane();
+		scrollPaneFileTree.setAutoscrolls(true);
 		scrollPaneFileTree
 					.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		scrollPaneFileTree.setMinimumSize(new Dimension(22, 222));
 		scrollPaneFileTree.setPreferredSize(new Dimension(22, 223));
 		modFilesPane.add(scrollPaneFileTree, BorderLayout.CENTER);
 		
-		modFileTree = new FileTreePanel(false);
+		modFileTree = FileTreePanel.createTree(false);
+		modFileTree.getTree().setVisibleRowCount(1);
+		modFileTree.setVisibleRowCount(1);
+		modFileTree.getTree().setScrollsOnExpand(true);
 		scrollPaneFileTree.setViewportView(modFileTree);
 		
 		((DefaultCaret) ios.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);

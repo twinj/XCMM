@@ -134,8 +134,6 @@ public class ByteScannerChannel extends RandomAccessFile
 				i = i + table[(int)bytes[i] & 0xFF];																			
 			}				
 		}
-		
-		//buffer.position((int) (ret + pSize));
 		return ret;
 	}
 }

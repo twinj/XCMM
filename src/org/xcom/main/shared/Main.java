@@ -362,7 +362,7 @@ public abstract class Main implements Runnable {
 	}
 	
 	/**
-	 * Returns whether a upk file is compressed or not.
+	 * Returns whether a upk file is decompressed or not.
 	 * 
 	 * @param f
 	 * @return
