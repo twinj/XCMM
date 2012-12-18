@@ -19,19 +19,16 @@ import java.util.Map;
 
 import javax.swing.Icon;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JTree;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 
 import org.xcom.main.shared.entities.Config;
-import org.xcom.mod.gui.JFileTree.FileTreeNode;
 
 /**
  * @author Kirill Grouchnikov
  */
-@SuppressWarnings("rawtypes")
 public class FileTreePanel extends JFileTree {
 	/**
 	 * 

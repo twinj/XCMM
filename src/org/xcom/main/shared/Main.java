@@ -18,8 +18,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Random;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -31,16 +33,21 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 import org.xcom.main.shared.entities.Config;
+import org.xcom.main.shared.entities.GameState;
+import org.xcom.main.shared.entities.HexEdit;
+import org.xcom.main.shared.entities.ModConfig;
+import org.xcom.main.shared.entities.ModInstall;
 import org.xcom.main.shared.entities.ModXml;
+import org.xcom.main.shared.entities.ResFile;
+import org.xcom.main.shared.entities.XMod;
 import org.xcom.mod.gui.streams.Stream;
-import org.xcom.mod.gui.workers.RunInBackground;
 import org.xcom.mod.tools.xshape.MHash;
 import org.xcom.mod.tools.xshape.XShape;
 
 public abstract class Main implements Runnable {
 	
 	public static final Charset DEFAULT_FILE_ENCODING = Charset.forName("UTF-8");
-
+	
 	public enum Error {
 		
 		NOTHING(""), //
@@ -108,28 +115,31 @@ public abstract class Main implements Runnable {
 	protected final static String RELATIVE_EXE_PATH = "\\Binaries\\Win32\\XComGame.exe";
 	protected final static String COMPRESSED_UPK_SIZE_EXT = ".uncompressed_size";
 	protected final static String RELATIVE_TOC_PATH = "\\XComGame\\PCConsoleTOC.txt";
-	private final static String UNPACKED_HEADER = "C1832A9E4D"; // version 4D033B
-																																	
+	private final static String UPK_HEADER = "C1832A9E"; // 32 bits
+
+	private final static String DECOMPRESSED_HEADER = UPK_HEADER + "4D033B00"; // 32 bits
+	
 	protected final static int NUM_CPU = (Runtime.getRuntime().availableProcessors());
 	
-	protected static Config config;
+	private static Config config;
 	protected static JFrame contentPane;
-	protected static MessageDigest md;
-	protected static JAXBContext jc;
-	protected static Unmarshaller u;
-	protected static Marshaller m;
+	
+	private static MessageDigest md;
+	private static JAXBContext jc;
+	private static Unmarshaller u;
+	private static Marshaller m;
+	
+	protected static Random random = new Random();
+	protected static GameState gameState;
 	
 	public static Stream MAIN = Stream.getStream(MAIN_DELEGATE);
-	protected static Stream MAKE = Stream.getStream(MAKE_DELEGATE);
+	public static Stream MAKE = Stream.getStream(MAKE_DELEGATE);
 	public static Stream INSTALL = Stream.getStream(INSTALL_DELEGATE);
 	public static Stream ERR = Stream.getErrorStream(ERROR_DELEGATE);
 	
 	public final static String USER_DIR = System.getProperty("user.dir");
 	
-	@SuppressWarnings("rawtypes")
-	protected RunInBackground sync;
 	protected Boolean DONE;
-	protected static Boolean IN_GUI = false;
 	protected volatile Object ret = null;
 	
 	protected static java.util.ArrayList<Path> editedUpks = new java.util.ArrayList<Path>();
@@ -141,9 +151,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Checks if the XCom path is valid
-	 * 
-	 * @param config
-	 * @return
 	 */
 	public static boolean isXComPathValid(String path) {
 		
@@ -152,9 +159,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Checks if the XCom path is valid
-	 * 
-	 * @param config
-	 * @return
 	 */
 	public static boolean isUnPackedPathValid(String path) {
 		
@@ -164,8 +168,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Appends complex msg to console. Add new line.
-	 * 
-	 * @param msg
 	 */
 	public static void print(Stream stream, String... strings) {
 		
@@ -178,8 +180,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Appends simple msg to console. No new line.
-	 * 
-	 * @param msg
 	 */
 	public static void print(String msg) {
 		
@@ -188,8 +188,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Appends simple msg to console. No new line.
-	 * 
-	 * @param msg
 	 */
 	protected static void print(java.io.PrintStream ps, String msg) {
 		
@@ -200,18 +198,14 @@ public abstract class Main implements Runnable {
 	 * Tests if filenames in each list match each other.
 	 * 
 	 * Assumes both lists are the same size.
-	 * 
-	 * @param originalFiles
-	 * @param editedFiles
-	 * @return true if all matched
 	 */
 	public static boolean fileNamesMatch(List<Path> originalFiles, List<Path> editedFiles) {
 		
 		for (Path o : originalFiles) {
 			boolean matched = false;
 			for (Path e : editedFiles) {
-				String [] eS = e.getFileName().toString().split("\\.");
-				String [] oS = o.getFileName().toString().split("\\.");
+				String[] eS = e.getFileName().toString().split("\\.");
+				String[] oS = o.getFileName().toString().split("\\.");
 				
 				String eT = eS[eS.length - 1];
 				String oT = oS[oS.length - 1];
@@ -229,10 +223,6 @@ public abstract class Main implements Runnable {
 	/**
 	 * Save xml jaxb object into xml. Object must implement ModXml to get save
 	 * path.
-	 * 
-	 * @param jaxBElement
-	 * @param path
-	 * @throws XmlSaveException
 	 */
 	public static void saveXml(ModXml jaxBElement) throws XmlSaveException {
 		
@@ -259,7 +249,6 @@ public abstract class Main implements Runnable {
 	/**
 	 * Marshalls the config to xml and prints the xml to console.
 	 * 
-	 * @param config
 	 */
 	public static void printXml(ModXml xml, String msg) {
 		
@@ -273,8 +262,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Marshalls the config to xml and prints the xml to console.
-	 * 
-	 * @param config
 	 */
 	public static void printXml(ModXml xml) {
 		
@@ -288,9 +275,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Marshalls the config to xml and prints the xml to console.
-	 * 
-	 * @param config
-	 * @throws XmlPrintException
 	 */
 	public static void printXml(java.io.PrintStream os, ModXml xml) {
 		
@@ -304,9 +288,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Marshalls the config to xml and prints the xml to console.
-	 * 
-	 * @param config
-	 * @throws XmlPrintException
 	 */
 	public static void printXml(java.io.PrintStream os, ModXml xml, String msg)
 				throws XmlPrintException {
@@ -324,10 +305,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Copy one file to another file location.
-	 * 
-	 * @param from
-	 * @param to
-	 * @throws CopyFileException
 	 */
 	public static void copyFile(Path from, Path to, Boolean replaceExisting)
 				throws CopyFileException {
@@ -363,16 +340,12 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Returns whether a upk file is decompressed or not.
-	 * 
-	 * @param f
-	 * @return
-	 * @throws IOException
 	 */
 	public static boolean isDecompressed(Path p) throws IOException {
 		
 		Boolean ret = true;
 		try (InputStream fis = Files.newInputStream(p)) {
-			final byte[] header = MHash.hexStringGetBytes(UNPACKED_HEADER);
+			final byte[] header = MHash.hexStringGetBytes(DECOMPRESSED_HEADER);
 			final byte[] barray = new byte[header.length];
 			fis.read(barray);
 			
@@ -389,9 +362,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * DO NOT USE THIS FOR HASH
-	 * 
-	 * @param s
-	 * @return
 	 */
 	public static byte[] getBytes(final String s) {
 		return s.getBytes(Main.DEFAULT_FILE_ENCODING);
@@ -399,8 +369,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Uncompresses a file in a new process: this method WAITS.
-	 * 
-	 * @param p
 	 */
 	public static void decompress(Path p) {
 		final String unpacked = Paths.get(XShape.getConfig().getUnpackedPath()).toString();
@@ -408,7 +376,8 @@ public abstract class Main implements Runnable {
 		final String fileName = p.getFileName().toString();
 		
 		final File log = new File("log");
-		final String tool = Paths.get(config.getCompressorPath()).toAbsolutePath().toString();
+		final String tool = Paths.get(getConfig().getCompressorPath()).toAbsolutePath()
+					.toString();
 		
 		// The only way this works is with a SINGLE string
 		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked
@@ -437,46 +406,28 @@ public abstract class Main implements Runnable {
 	/**
 	 * Unpack upk fle - must be decompressed prior a file in a new process:
 	 * however this method WAITS.
-	 * 
-	 * @param p
 	 */
 	public static Process extract(Path p) {
 		
 		final String unpacked = Paths.get(XShape.getConfig().getUnpackedPath()).toString();
 		final String fileToUnpack = p.toAbsolutePath().toString();
-		//final String fileName = p.getFileName().toString();
+		final String tool = Paths.get(getConfig().getExtractorPath()).toAbsolutePath()
+					.toString();
 		
-		final String tool = Paths.get(config.getExtractorPath()).toAbsolutePath().toString();
-		
-		//final File log = new File("log");		
-		// The only way this works is with a SINGLE string
 		ProcessBuilder pb = new ProcessBuilder("\"" + tool + "\" -lzo -out=\"" + unpacked
 					+ "\" \"" + fileToUnpack + "\"");
 		
 		Process proc = null;
-		
 		try {
 			pb.redirectErrorStream(true);
-			// pb.redirectOutput(Redirect.appendTo(log));
-			//pb.redirectOutput(Redirect.INHERIT);
 			proc = pb.start();
-			
-			//assert pb.redirectInput() == Redirect.PIPE;
-			//assert pb.redirectOutput().file() == log;
-			//assert proc.getInputStream().read() == -1;
-			
-		} catch (IOException ex) {
-			ex.printStackTrace(System.err);
-		}
+		} catch (IOException ex) {}
 		return proc;
 	}
 	
 	/**
 	 * After decompressing game files this will create backups and move redundant
 	 * files.
-	 * 
-	 * @param p
-	 * @throws IOException
 	 */
 	public static void sortGameFiles(Path p) throws IOException {
 		
@@ -484,7 +435,6 @@ public abstract class Main implements Runnable {
 					.toString();
 		final String cooked = getConfig().getCookedPath().toAbsolutePath().toString();
 		
-		final String fileToDecompress = p.toAbsolutePath().toString();
 		final String fileName = p.getFileName().toString();
 		
 		Path uncomp = Paths.get(unpacked, fileName);
@@ -493,7 +443,7 @@ public abstract class Main implements Runnable {
 			try {
 				print("SORTING FILE [" + fileName, "]");
 				
-				Path original = Paths.get(fileToDecompress);
+				Path original = p;
 				Path originalBackup = Paths.get(unpacked, fileName + ".original_compressed");
 				
 				Files.move(original, originalBackup, StandardCopyOption.REPLACE_EXISTING);
@@ -518,13 +468,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Download a file and save it in 'temp' with filename saveAs
-	 * 
-	 * @param saveAs
-	 * @param down
-	 * 
-	 * @return A path to the finished download.
-	 * 
-	 * @throws DownloadFailedException
 	 */
 	public static Path download(String saveAs, URL down) throws DownloadFailedException {
 		Path temp = Paths.get("temp");
@@ -554,10 +497,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Unzip a fail.
-	 * 
-	 * @param zipDir
-	 * @param saveToDir
-	 * @throws ZipException
 	 */
 	public static void unZip(Path zipDir, Path saveToDir) throws ZipException {
 		
@@ -611,8 +550,6 @@ public abstract class Main implements Runnable {
 	
 	/**
 	 * Opens the desktop browser to url string
-	 * 
-	 * @param url
 	 */
 	public static void openDesktopBrowser(String url) throws MalformedURLException {
 		if (Desktop.isDesktopSupported()) {
@@ -634,23 +571,80 @@ public abstract class Main implements Runnable {
 	}
 	
 	public static Config getConfig() {
+		if (config == null) {
+			try {
+				Path c = Config.getSavePath();
+				
+				if (Files.exists(c)) {
+					try {
+						config = (Config) getUnMarshaller().unmarshal(c.toFile());
+					} catch (JAXBException e) {
+						print("FATAL ERROR: Could not read/unmarshal config file.\n");
+						e.printStackTrace(System.err);
+						throw new ConfigFileException("JAXBException,unmarshal");
+					}
+				} else {
+					config = new Config();
+				}
+			} catch (ConfigFileException e) {}
+		}
 		return config;
 	}
 	
-	protected static MessageDigest getMd() {
+	public static MessageDigest getDigest() {
+		if (md == null) {
+			try {
+				md = MessageDigest.getInstance(MHash.ALGORITHM);
+			} catch (NoSuchAlgorithmException ex) {}
+		}
 		return md;
 	}
 	
-	protected static JAXBContext getJc() {
+	protected static JAXBContext getJAXC() {
+		if (jc == null) {
+			try {
+				jc = JAXBContext.newInstance(Config.class, HexEdit.class, ModConfig.class,
+							ResFile.class, XMod.class, ModInstall.class, GameState.class);
+			} catch (JAXBException ex) {
+				ex.printStackTrace(System.err);
+			}
+		}
 		return jc;
 	}
 	
-	protected static Unmarshaller getU() {
+	public static Unmarshaller getUnMarshaller() throws JAXBException {
+		if (u == null) {
+			u = getJAXC().createUnmarshaller();
+		}
 		return u;
 	}
 	
-	protected static Marshaller getM() {
+	public static Marshaller getMarshaller() throws JAXBException {
+		if (m == null) {
+			m = getJAXC().createMarshaller();
+			m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+		}
 		return m;
+	}
+	
+	protected GameState getGameState() {
+		if (gameState == null) {
+			try {
+				Path gs = GameState.getSavePath();
+				
+				if (Files.exists(gs)) {
+					try {
+						gameState = (GameState) getUnMarshaller().unmarshal(gs.toFile());
+					} catch (JAXBException e) {
+						print("FATAL ERROR: Could not read/unmarshal game state file.\n");
+						throw new GameStateFileException("JAXBException,unmarshal");
+					}
+				} else {
+					gameState = new GameState();
+				}
+			} catch (GameStateFileException e) {}
+		}
+		return gameState;
 	}
 	
 	private static void print(String... strings) {
@@ -658,7 +652,6 @@ public abstract class Main implements Runnable {
 	}
 	
 	public Boolean getDone() {
-		
 		return DONE;
 	}
 	

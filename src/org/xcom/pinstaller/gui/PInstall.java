@@ -29,7 +29,6 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -57,28 +56,20 @@ import javax.swing.border.EtchedBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.DefaultCaret;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 
 import org.xcom.main.shared.DownloadFailedException;
 import org.xcom.main.shared.Main;
 import org.xcom.main.shared.XmlSaveException;
-import org.xcom.main.shared.entities.Config;
-import org.xcom.main.shared.entities.HexEdit;
-import org.xcom.main.shared.entities.ModConfig;
-import org.xcom.main.shared.entities.ResFile;
 import org.xcom.main.shared.entities.XMod;
 import org.xcom.mod.gui.shared.GetFilePanel;
 import org.xcom.mod.gui.streams.Stream;
 import org.xcom.mod.gui.workers.DecompressInBackGround;
 import org.xcom.mod.gui.workers.RunInBackground;
 import org.xcom.mod.tools.installer.Installer;
-import org.xcom.mod.tools.xshape.MHash;
 import org.xcom.mod.tools.xshape.XShape;
 
 public class PInstall extends Main {
-	
 	
 	private JButton close;
 	
@@ -110,12 +101,12 @@ public class PInstall extends Main {
 		frmXcmmPinstallerVcbeta.addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentShown(ComponentEvent e) {
-				xcomInstallPanel.getTextField().setText(config.getXcomPath());
-				gilderDecomPanel.getTextField().setText(config.getCompressorPath());
+				xcomInstallPanel.getTextField().setText(getConfig().getXcomPath());
+				gilderDecomPanel.getTextField().setText(getConfig().getCompressorPath());
 				
 				if (Files.exists(modPath)) {
 					try {
-						mod = (XMod) u.unmarshal(modPath.toFile());
+						mod = (XMod) getUnMarshaller().unmarshal(modPath.toFile());
 					} catch (JAXBException ex) {
 						ex.printStackTrace(System.err);
 					}
@@ -137,7 +128,7 @@ public class PInstall extends Main {
 	}
 	
 	public final void initUI() {
-		frmXcmmPinstallerVcbeta.setTitle("XCMM PInstaller: v-1.07c-BETA");
+		frmXcmmPinstallerVcbeta.setTitle("XCPI: v-1.07e");
 		frmXcmmPinstallerVcbeta.getContentPane().setLayout(new BorderLayout(0, 0));
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
@@ -201,7 +192,7 @@ public class PInstall extends Main {
 		button.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				
-				final Path home = Paths.get(config.getUnpackedPath());
+				final Path home = Paths.get(getConfig().getUnpackedPath());
 				final String uSize = ".uncompressed_size.bkp";
 				final String oComp = ".original_compressed";
 				
@@ -234,24 +225,25 @@ public class PInstall extends Main {
 							
 						} else {}
 						
-						JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg, title, op);
+						JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg,
+									title, op);
 						
 						if (f != null && (f.getNumMatches() > 0)) {
 							
-							Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
-							Path iniFile = Paths.get(config.getUnpackedPath(), "install.ini");
+							Path exeFile = Paths.get(getConfig().getXcomPath(), RELATIVE_EXE_PATH);
+							Path iniFile = Paths.get(getConfig().getUnpackedPath(), "install.ini");
 							runXShapeInBackGround(exeFile, (ArrayList<Path>) f.getUpks(), Files
 										.exists(iniFile) == true ? iniFile : null,
 										(JComponent) e.getSource(), Main.MAIN,
-										"XCMM Installer has finished re-patching the game.");							
+										"XCMM Installer has finished re-patching the game.");
 						}
 						break;
 				}
 			}
 			class Finder extends SimpleFileVisitor<Path> {
 				
-				private final Path cooked = config.getCookedPath();
-				private final Path home = Paths.get(config.getUnpackedPath());
+				private final Path cooked = getConfig().getCookedPath();
+				private final Path home = Paths.get(getConfig().getUnpackedPath());
 				
 				private final PathMatcher matcherUSize;
 				private final PathMatcher matcherOrigCompress;
@@ -270,7 +262,7 @@ public class PInstall extends Main {
 					print("COOKED PATH [" + cooked, "]");
 					matcherUSize = FileSystems.getDefault().getPathMatcher("glob:" + "*" + uSize);
 					matcherOrigCompress = FileSystems.getDefault().getPathMatcher(
-								"glob:" + "*" + orig_Compress);				
+								"glob:" + "*" + orig_Compress);
 				}
 				
 				// Compares the glob pattern against
@@ -301,7 +293,7 @@ public class PInstall extends Main {
 						
 						Path to = Paths.get(cooked.toString(), baseName);
 						numMatches++;
-						upks.add(Paths.get(config.getUnpackedPath(), baseName));
+						upks.add(Paths.get(getConfig().getUnpackedPath(), baseName));
 						
 						try {
 							Files.move(file, to, StandardCopyOption.REPLACE_EXISTING);
@@ -372,34 +364,33 @@ public class PInstall extends Main {
 		chooseModPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 		chooseModPanel.setAlignmentY(Component.BOTTOM_ALIGNMENT);
 		GroupLayout gl_generalTab = new GroupLayout(generalTab);
-		gl_generalTab.setHorizontalGroup(
-			gl_generalTab.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_generalTab.createSequentialGroup()
-					.addGap(2)
-					.addGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addPreferredGap(ComponentPlacement.RELATED)
-							.addComponent(xcomInstallPanel, GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
-							.addPreferredGap(ComponentPlacement.RELATED))
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addComponent(gilderDecomPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
-							.addPreferredGap(ComponentPlacement.RELATED))
-						.addGroup(gl_generalTab.createSequentialGroup()
-							.addComponent(chooseModPanel, GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
-							.addPreferredGap(ComponentPlacement.RELATED)))
-					.addGap(3))
-		);
-		gl_generalTab.setVerticalGroup(
-			gl_generalTab.createParallelGroup(Alignment.LEADING)
-				.addGroup(gl_generalTab.createSequentialGroup()
-					.addGap(5)
-					.addComponent(xcomInstallPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
-					.addGap(5)
-					.addComponent(gilderDecomPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED, 5, Short.MAX_VALUE)
-					.addComponent(chooseModPanel, GroupLayout.PREFERRED_SIZE, 50, GroupLayout.PREFERRED_SIZE)
-					.addGap(5))
-		);
+		gl_generalTab.setHorizontalGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
+					.addGroup(
+								gl_generalTab.createSequentialGroup().addGap(2).addGroup(
+											gl_generalTab.createParallelGroup(Alignment.LEADING).addGroup(
+														gl_generalTab.createSequentialGroup().addPreferredGap(
+																	ComponentPlacement.RELATED).addComponent(
+																	xcomInstallPanel, GroupLayout.DEFAULT_SIZE, 238,
+																	Short.MAX_VALUE).addPreferredGap(
+																	ComponentPlacement.RELATED)).addGroup(
+														gl_generalTab.createSequentialGroup().addComponent(
+																	gilderDecomPanel, GroupLayout.DEFAULT_SIZE, 240,
+																	Short.MAX_VALUE).addPreferredGap(
+																	ComponentPlacement.RELATED)).addGroup(
+														gl_generalTab.createSequentialGroup().addComponent(
+																	chooseModPanel, GroupLayout.DEFAULT_SIZE, 240,
+																	Short.MAX_VALUE).addPreferredGap(
+																	ComponentPlacement.RELATED))).addGap(3)));
+		gl_generalTab.setVerticalGroup(gl_generalTab.createParallelGroup(Alignment.LEADING)
+					.addGroup(
+								gl_generalTab.createSequentialGroup().addGap(5).addComponent(
+											xcomInstallPanel, GroupLayout.PREFERRED_SIZE, 50,
+											GroupLayout.PREFERRED_SIZE).addGap(5).addComponent(
+											gilderDecomPanel, GroupLayout.PREFERRED_SIZE, 50,
+											GroupLayout.PREFERRED_SIZE).addPreferredGap(
+											ComponentPlacement.RELATED, 5, Short.MAX_VALUE).addComponent(
+											chooseModPanel, GroupLayout.PREFERRED_SIZE, 50,
+											GroupLayout.PREFERRED_SIZE).addGap(5)));
 		generalTab.setLayout(gl_generalTab);
 		
 		Box horizontalBox_2 = Box.createHorizontalBox();
@@ -457,7 +448,7 @@ public class PInstall extends Main {
 			final String compressorPath = gilderDecomPanel.getTextField().getText();
 			String modSelected = chooseModPanel.getTextField().getText();
 			
-			final String unpackedPath = config.getUnpackedPath();
+			final String unpackedPath = getConfig().getUnpackedPath();
 			
 			Boolean isOk = true;
 			
@@ -468,11 +459,11 @@ public class PInstall extends Main {
 			boolean xPathValid = Main.isXComPathValid(xComPath);
 			
 			if (xPathValid) {
-				config.setXcomPath(xComPath);
+				getConfig().setXcomPath(xComPath);
 			}
 			
 			if (Files.exists(Paths.get(compressorPath))) {
-				config.setCompressorPath(compressorPath);
+				getConfig().setCompressorPath(compressorPath);
 			}
 			
 			if (modSelected.isEmpty()
@@ -510,17 +501,18 @@ public class PInstall extends Main {
 			
 				msg = null;
 			}
-			config.setUnpackedPath(unpackedPath);
+			getConfig().setUnpackedPath(unpackedPath);
 			
 			try {
-				Main.saveXml(config);
+				Main.saveXml(getConfig());
 			} catch (XmlSaveException ex) {
 				msg = "Cannot install. There was an error saving the settings. Try again.";
 				title = "Settings not saved.";
 				ex.printStackTrace(System.err);
 			}
 			if (msg != null) {
-				JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg, title, op);
+				JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg,
+							title, op);
 			}
 			
 			if (isOk) {
@@ -530,7 +522,7 @@ public class PInstall extends Main {
 					modPath = Paths.get(modSelected);
 					
 					try {
-						mod = (XMod) u.unmarshal(modPath.toFile());
+						mod = (XMod) getUnMarshaller().unmarshal(modPath.toFile());
 					} catch (JAXBException ex) {
 						JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(),
 									"Cannot continue. Mod file could not be marshalled.", "Installer",
@@ -545,6 +537,8 @@ public class PInstall extends Main {
 					if (Files.notExists(iniPath)) {
 						iniPath = null;
 					}
+				} else {
+					iniPath = null;
 				}
 				
 				int n = JOptionPane.showConfirmDialog(frmXcmmPinstallerVcbeta.getContentPane(),
@@ -562,13 +556,14 @@ public class PInstall extends Main {
 				
 				final Path iniFile = iniPath;
 				
-				RunInBackground<Object> install = new RunInBackground<Object>(frmXcmmPinstallerVcbeta,
-							new Installer(modPath.toFile()), "Installing " + mod.getName(), src) {
+				RunInBackground<Object> install = new RunInBackground<Object>(
+							frmXcmmPinstallerVcbeta, new Installer(modPath.toFile(), false),
+							"Installing " + mod.getName(), src) {
 					
 					@Override
 					protected void after(Error e, Object ret) {
-						afterInstallTry(this, (Installer) main, src);
-					}				
+						afterInstallTry(this, (Installer) worker, src);
+					}
 					protected void afterInstallTry(final RunInBackground<Object> install,
 								final Installer main, final JComponent src) {
 						Object ret = null;
@@ -580,7 +575,7 @@ public class PInstall extends Main {
 						Error e = main.getError();
 						
 						if (installed.getIsInstalled()) {
-							Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
+							Path exeFile = Paths.get(getConfig().getXcomPath(), RELATIVE_EXE_PATH);
 							
 							runXShapeInBackGround(exeFile, editedUpks, iniFile, src, MAIN,
 										"XCMM Installer has finished installing the mod.");
@@ -631,11 +626,12 @@ public class PInstall extends Main {
 									DecompressInBackGround dib = new DecompressInBackGround(uncFiles, src) {
 										@Override
 										protected void after() {
-											final RunInBackground<Object> install = new RunInBackground<Object>(frmXcmmPinstallerVcbeta, main,
-														"Trying install again..." + installed.getName(), src) {
+											final RunInBackground<Object> install = new RunInBackground<Object>(
+														frmXcmmPinstallerVcbeta, main, "Trying install again..."
+																	+ installed.getName(), src) {
 												@Override
 												protected void after(Error e, Object ret) {
-													afterInstallTry(this, (Installer) main, src);
+													afterInstallTry(this, (Installer) worker, src);
 												}
 											};
 											install.addPropertyChangeListener(install);
@@ -649,17 +645,17 @@ public class PInstall extends Main {
 									break;
 							}
 							if (msg != null) {
-								JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(), msg, title,
-											JOptionPane.ERROR_MESSAGE);
+								JOptionPane.showMessageDialog(frmXcmmPinstallerVcbeta.getContentPane(),
+											msg, title, JOptionPane.ERROR_MESSAGE);
 							}
 						}
-					}						
+					}
 				};
 				install.addPropertyChangeListener(install);
 				install.execute();
 			}
 		}
-
+		
 		public boolean getToolsToPerformInitialVerification(final String unpackedPath,
 					final Path cookedCore, final JComponent src) throws HeadlessException,
 					MalformedURLException {
@@ -681,7 +677,8 @@ public class PInstall extends Main {
 								src.setEnabled(false);
 							}
 							close.setEnabled(false);
-							frmXcmmPinstallerVcbeta.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+							frmXcmmPinstallerVcbeta.setCursor(Cursor
+										.getPredefinedCursor(Cursor.WAIT_CURSOR));
 							Main.openDesktopBrowser(HTTP_WWW_GILDOR_ORG);
 							decompressWithToolCheck(null, decompress, true);
 							return null;
@@ -693,7 +690,8 @@ public class PInstall extends Main {
 							} catch (InterruptedException | ExecutionException ex) {
 								ex.printStackTrace();
 							}
-							frmXcmmPinstallerVcbeta.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+							frmXcmmPinstallerVcbeta.setCursor(Cursor
+										.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 							if (src != null) {
 								src.setEnabled(true);
 							}
@@ -707,34 +705,23 @@ public class PInstall extends Main {
 			return true;
 		}
 	}
-
+	
 	public static void main(String[] args) {
-		Path path = Paths.get(Config.PATH);	
 		try {
-			md = MessageDigest.getInstance(MHash.ALGORITHM);
-			jc = JAXBContext.newInstance(Config.class, HexEdit.class, ModConfig.class,
-						ResFile.class, XMod.class);
-			u = jc.createUnmarshaller();
-			m = jc.createMarshaller();
-			m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);			
+			getConfig();			
+			getUnMarshaller();
+			getMarshaller();
 		} catch (Exception e) {
 			print("FATAL ERROR: Could not create services.\n");
 			e.printStackTrace(System.err);
 			System.exit(Error.SYS_SERVICE_CREATE_FAIL.ordinal());
-		}		
-		if (Files.exists(path)) {
-			try {
-				PInstall.config = (Config) PInstall.u.unmarshal(path.toFile());
-			} catch (JAXBException ex) {}
-		} else {
-			PInstall.config = new Config();
-		}		
+		}
 		PInstall.runc();
 	}
 	
 	public static void runc() {
 		EventQueue.invokeLater(new Runnable() {
-			public void run() {			
+			public void run() {
 				try {
 					new PInstall();
 					Main.contentPane.setVisible(true);
@@ -743,7 +730,7 @@ public class PInstall extends Main {
 				}
 			}
 		});
-	}	
+	}
 	@Override
 	public void run() {}
 	

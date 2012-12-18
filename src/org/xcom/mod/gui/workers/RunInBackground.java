@@ -18,7 +18,7 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 			implements
 				PropertyChangeListener {
 	
-	protected Main main;
+	protected Main worker;
 	protected ProgressMonitor progressMonitor;
 	protected SyncProgress sync = new SyncProgress();
 	protected Random random = new Random();
@@ -27,8 +27,7 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 	
 	public RunInBackground(Component parent, Main main, String workMessage, JComponent src) {
 		
-		this.main = main;
-		// main.setSync(this);
+		this.worker = main;
 		this.parent = parent;
 		this.src = src;
 		progressMonitor = new ProgressMonitor(parent, workMessage, "", 0, 100);
@@ -42,8 +41,8 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 		if (src != null) {
 			src.setEnabled(false);
 		}
-		main.run();
-		return (T) main.getRet();
+		worker.run();
+		return (T) worker.getRet();
 	}
 	
 	@Override
@@ -57,7 +56,7 @@ public abstract class RunInBackground<T> extends SwingWorker<T, Void>
 			ex.printStackTrace(System.err);
 		}
 		
-		Error e = main.getError();
+		Error e = worker.getError();
 		
 		after(e, ret);
 		parent.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));

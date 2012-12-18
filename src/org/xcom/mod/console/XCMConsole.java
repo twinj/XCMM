@@ -5,23 +5,16 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 
-import org.xcom.main.shared.ConfigFileException;
 import org.xcom.main.shared.CopyFileException;
 import org.xcom.main.shared.Main;
 import org.xcom.main.shared.XmlSaveException;
-import org.xcom.main.shared.entities.Config;
-import org.xcom.main.shared.entities.HexEdit;
 import org.xcom.main.shared.entities.ModConfig;
-import org.xcom.main.shared.entities.ResFile;
 import org.xcom.main.shared.entities.XMod;
 import org.xcom.mod.gui.XCMGUI;
 import org.xcom.mod.tools.installer.Installer;
@@ -36,7 +29,6 @@ import org.xcom.mod.tools.shared.UpkFileNotDecompressedException;
 import org.xcom.mod.tools.shared.UpkFileNotExtractedException;
 import org.xcom.mod.tools.shared.UpkResourceNotFoundException;
 import org.xcom.mod.tools.xshape.CalculateHashException;
-import org.xcom.mod.tools.xshape.MHash;
 import org.xcom.mod.tools.xshape.XModXmlAccessException;
 import org.xcom.mod.tools.xshape.XShape;
 
@@ -49,62 +41,27 @@ import org.xcom.mod.tools.xshape.XShape;
 public class XCMConsole extends Main {
 	
 	// MAIN ENTRY POINT
-
+	
 	private final static String INVOKE_GUI = "-g";
 	private final static String INVOKE_MAKE = "-m";
 	private final static String INVOKE_INSTALL = "-i";
 	private final static String INVOKE_XSHAPE = "-x";
 	private final static String INVOKE_USAGE = "-u";
-
-
+	
 	public static void main(String[] args) {
-
-		// Marshal helpers and Algorithms
+		
 		try {
-			md = MessageDigest.getInstance(MHash.ALGORITHM);
-			jc = JAXBContext.newInstance(Config.class, HexEdit.class,
-					ModConfig.class, ResFile.class, XMod.class);
-			u = jc.createUnmarshaller();
-			m = jc.createMarshaller();
-			m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+			getConfig();
+			getMarshaller();
+			getUnMarshaller();
 			
 		} catch (Exception e) {
 			print("FATAL ERROR: Could not create XCMM services.\n");
 			e.printStackTrace(System.err);
 			System.exit(Error.SYS_SERVICE_CREATE_FAIL.ordinal());
 		}
-		
-		try {
-			Path c = Config.getDir();
-			if (Files.notExists(c)) {
-				try {
-					Files.createDirectory(c);
-				} catch (IOException e) {
-					print("FATAL ERROR: Could not create directory for config file.\n");
-					throw new ConfigFileException("IOException,createDirectory");
-				}
-				print("CREATED CONFIG DIRECTORY [\\config]", "");
-			}
-			
-			c = Paths.get(Config.PATH);
-			
-			if (Files.exists(c)) {
-				try {
-					config = (Config) u.unmarshal(c.toFile());
-				} catch (JAXBException e) {
-					print("FATAL ERROR: Could not read/unmarshal config file.\n");
-					throw new ConfigFileException("JAXBException,unmarshal");
-				}
-			} else {
-				config = new Config();
-			}
-		} catch (ConfigFileException e) {
-			e.printStackTrace(System.err);
-			exit(Error.CONFIG_FILE_GET_ERROR);
-		}
-		
+				
 		if (args.length == 0) {
-			IN_GUI = true;
 			XCMGUI.run(true);
 		}
 		
@@ -112,7 +69,6 @@ public class XCMConsole extends Main {
 			String invoker = args[0];
 			
 			if (invoker.equals(INVOKE_GUI) && args.length == 1) {
-				IN_GUI = true;
 				XCMGUI.run(true);
 			} else if (invoker.equals(INVOKE_USAGE) && args.length == 1) {
 				printUsage();
@@ -155,15 +111,14 @@ public class XCMConsole extends Main {
 					modConfig = createModConfigFromUserInput(modName);
 				} else {
 					try {
-						modConfig = (ModConfig) u.unmarshal(path.toFile());
+						modConfig = (ModConfig)  getUnMarshaller().unmarshal(path.toFile());
 					} catch (JAXBException e) {
 						e.printStackTrace(System.err);
-						exit(Error.MOD_CONFIG_FILE_ERROR,
-								"JAXBException [" + path.toString() + "]");
+						exit(Error.MOD_CONFIG_FILE_ERROR, "JAXBException [" + path.toString() + "]");
 					}
 				}
 				
-				String unpacked = config.getUnpackedPath();
+				String unpacked = getConfig().getUnpackedPath();
 				List<String> editedFiles = modConfig.getOriginalFilePaths();
 				
 				// Generate edited files list if not yet made
@@ -173,8 +128,8 @@ public class XCMConsole extends Main {
 					
 					for (String editedFile : editedFiles) {
 						
-						Path p = Paths.get(modConfig.getEditedFilesPath().toString(), Paths
-								.get(editedFile).getFileName().toString());
+						Path p = Paths.get(modConfig.getEditedFilesPath().toString(), Paths.get(
+									editedFile).getFileName().toString());
 						
 						print(p.toString());
 						files.add(p);
@@ -230,7 +185,7 @@ public class XCMConsole extends Main {
 				exit(Error.MOD_EXPORT_FILE_ERROR);
 			}
 			try {
-				new Installer(modFile.toFile()).runc();
+				new Installer(modFile.toFile(), false).runc();
 			} catch (UpkFileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace(System.err);
@@ -259,13 +214,13 @@ public class XCMConsole extends Main {
 			
 			printActionMessage("XSHAPE");
 			Path configFile = Paths.get("XSHAPE.config");
-			Path exeFile = Paths.get(config.getXcomPath(), RELATIVE_EXE_PATH);
+			Path exeFile = Paths.get(getConfig().getXcomPath(), RELATIVE_EXE_PATH);
 			List<String> configLines = null;
 			List<String> tocLines = null;
 			List<Path> paths = null;
 			
 			if (Files.notExists(configFile) || Files.notExists(exeFile)
-					|| !Files.isReadable(exeFile) || !Files.isWritable(exeFile)) {
+						|| !Files.isReadable(exeFile) || !Files.isWritable(exeFile)) {
 				exit(Error.XSHAPE_CONFIG_ERROR);
 			}
 			
@@ -275,8 +230,8 @@ public class XCMConsole extends Main {
 				
 				for (String line : configLines) {
 					
-					if (Files.notExists(Paths.get(config.getCookedPath().toString(),
-							line, COMPRESSED_UPK_SIZE_EXT))) {} else {
+					if (Files.notExists(Paths.get(getConfig().getCookedPath().toString(), line,
+								COMPRESSED_UPK_SIZE_EXT))) {} else {
 						configLines.remove(line);
 					}
 				}
@@ -285,7 +240,7 @@ public class XCMConsole extends Main {
 					exit(Error.DEFAULT);
 				}
 				
-				Path toc = Paths.get(config.getXcomPath(), RELATIVE_TOC_PATH);
+				Path toc = Paths.get(getConfig().getXcomPath(), RELATIVE_TOC_PATH);
 				tocLines = Files.readAllLines(toc, Charset.forName("UTF-8"));
 				
 			} catch (IOException e) {
@@ -295,7 +250,7 @@ public class XCMConsole extends Main {
 			
 			for (String fileName : configLines) {
 				boolean valid = false;
-				Path path = Paths.get(config.getCookedPath().toString(), fileName);
+				Path path = Paths.get(getConfig().getCookedPath().toString(), fileName);
 				if (!Files.isRegularFile(path)) {
 					exit(Error.DEFAULT);
 				}
@@ -332,25 +287,25 @@ public class XCMConsole extends Main {
 	private static void verfiyConfigForCommandLine() {
 		
 		// GET AUTHOR
-		if (config.getAuthor().equals("unknown")) {
-			config.setAuthor(geStringFromUser("Please enter a valid Author name: "));
+		if (getConfig().getAuthor().equals("unknown")) {
+			getConfig().setAuthor(geStringFromUser("Please enter a valid Author name: "));
 		}
 		// GET XCOM PATH
-		while (!isXComPathValid(config.getXcomPath())) {
+		while (!isXComPathValid(getConfig().getXcomPath())) {
 			print("The system cannot verify your XCOM installion.\n");
-			config.setXcomPath(getPathFromUser().toString());
+			getConfig().setXcomPath(getPathFromUser().toString());
 		}
 		print("The system has verfied your XCOM installion.\n");
 		
 		// GET UNPACKED PATH
-		if (!isUnPackedPathValid(config.getUnpackedPath())) {
+		if (!isUnPackedPathValid(getConfig().getUnpackedPath())) {
 			print("The system cannot verify your unpacked resources.\n");
-			config.setUnpackedPath(getPathFromUser().toString());
+			getConfig().setUnpackedPath(getPathFromUser().toString());
 		}
 		print("The system has verfied your unpacked resources.\n");
 		try {
-			printXml(config);
-			saveXml(config);
+			printXml(getConfig());
+			saveXml(getConfig());
 		} catch (XmlSaveException e) {
 			print("FATAL ERROR: Could not save config file to stream.\n");
 			e.printStackTrace(System.err);
@@ -377,9 +332,8 @@ public class XCMConsole extends Main {
 			
 			print("MOD NAME [", modConfig.getName(), "] added to xml.");
 		}
-		modConfig.setAuthor(config.getAuthor());
-		modConfig
-				.setDescription(geStringFromUser("Please enter mod description: "));
+		modConfig.setAuthor(getConfig().getAuthor());
+		modConfig.setDescription(geStringFromUser("Please enter mod description: "));
 		
 		print("MOD DESCRIPTION [", modConfig.getDescription(), "] added to xml.");
 		
@@ -390,11 +344,10 @@ public class XCMConsole extends Main {
 			print("Please enter valid paths to ORIGINAL files.\n");
 			Path p = getPathFromUser();
 			files.add(p);
-			list.add(p.toString().substring(config.getUnpackedPath().length()));
+			list.add(p.toString().substring(getConfig().getUnpackedPath().length()));
 			print("Are there more files? ");
 			
-			print(MAKE_DELEGATE, "ORIGINAL FILE [" + p.getFileName(),
-					"] added to xml.");
+			print(MAKE_DELEGATE, "ORIGINAL FILE [" + p.getFileName(), "] added to xml.");
 			
 		} while (yesFromUser());
 		
@@ -408,7 +361,7 @@ public class XCMConsole extends Main {
 			
 			Path p = getPathFromUser();
 			print(MAKE_DELEGATE, "EDITED FILE [" + p.getFileName(),
-					"] READY TO COMPARE TO ORIGINAL.");
+						"] READY TO COMPARE TO ORIGINAL.");
 			files.add(p);
 			
 			if (!(list.size() == files.size())) {
@@ -491,8 +444,7 @@ public class XCMConsole extends Main {
 	 *          enum code
 	 */
 	public static void exit(Error code, String msg) {
-		print("ERROR CODE [" + code.ordinal(), "]: ", code.getMsg(), " [" + msg,
-				"]");
+		print("ERROR CODE [" + code.ordinal(), "]: ", code.getMsg(), " [" + msg, "]");
 		System.exit(code.ordinal());
 	}
 	
@@ -502,7 +454,7 @@ public class XCMConsole extends Main {
 	protected static void printUsage() {
 		
 		print(SYSTEM_NAME, " [ {[-i] | [-m]} mod name | -g | -u ]\n", "\tE.g:\t",
-				SYSTEM_NAME, " -i ModEst1999\n", "\t\t", SYSTEM_NAME, " -g");
+					SYSTEM_NAME, " -i ModEst1999\n", "\t\t", SYSTEM_NAME, " -g");
 	}
 	
 	@Override

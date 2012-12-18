@@ -17,14 +17,17 @@ import javax.xml.bind.annotation.XmlType;
  */
 
 @XmlRootElement(name="HexEdit")
-@XmlType(propOrder={"id", "offset", "data", "module"})
+@XmlType(propOrder={"id", "offset", "data", "backup", "module"})
 public class HexEdit implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private Integer id;
 	private int offset;
 	private String data;
+	private String backup;
+	
 	private ResFile module;
+
 
 	// Clean constructor required for serialisation
 	public HexEdit() {}
@@ -33,10 +36,11 @@ public class HexEdit implements Serializable {
 		this.id = id;
 	}
 
-	public HexEdit(Integer id, int offset, String data) {
+	public HexEdit(Integer id, int offset, String data, String backup) {
 		this.id = id;
 		this.offset = offset;
 		this.data = data;
+		this.backup = backup;
 	}
 
 	@XmlAttribute(name = "Id")
@@ -64,6 +68,15 @@ public class HexEdit implements Serializable {
 
 	public void setData(String data) {
 		this.data = data;
+	}
+	
+	@XmlElement(name="Backup")
+	public String getBackup() {
+		return backup;
+	}
+
+	public void setBackup(String backup) {
+		this.backup = backup;
 	}
 
 	public ResFile getModule() {

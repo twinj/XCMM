@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,8 +33,10 @@ import javax.xml.bind.JAXBException;
 import org.xcom.main.shared.Main;
 import org.xcom.main.shared.XmlSaveException;
 import org.xcom.main.shared.entities.InstallLog;
+import org.xcom.main.shared.entities.ModInstall;
 import org.xcom.main.shared.entities.ResFile;
 import org.xcom.main.shared.entities.XMod;
+import org.xcom.mod.gui.streams.Stream;
 import org.xcom.mod.tools.shared.ByteScannerChannel;
 import org.xcom.mod.tools.shared.ExportFileAccessException;
 import org.xcom.mod.tools.shared.UpkFileAccessException;
@@ -49,34 +50,47 @@ import org.xcom.mod.tools.xshape.MHash;
  */
 final public class Installer extends Main {
 	
-	final static String COOKED = "\\XComGame\\CookedPCConsole\\";
-	final static String DIFF_DATA_TAG = "DiffData";
-	final static String SEARCH_HASH_TAG = "SearchHash";
-	final static String DATA_SUM_TAG = "DataSum";
 	private final static int numWorkers = (NUM_CPU > 1 ? NUM_CPU - 1 : NUM_CPU);
 	
 	private XMod installPackage;
 	private List<Path> upkFiles;
 	private File modFile;
+	private Boolean upateUpkPositionOnly = false;
+	private Stream stream;
 	
-	public Installer(File modFile) {
+	private Installer(File modFile) {
 		super();
 		this.modFile = modFile;
+	}
+	
+	public Installer(File modFile, Boolean upateUpkPositionOnly) {
+		this(modFile);
+		this.upateUpkPositionOnly = upateUpkPositionOnly;
+		if (!upateUpkPositionOnly) {
+			stream = INSTALL;
+		} else {
+			stream = MAKE;
+		}
 	}
 	
 	@Override
 	public void run() {
 		
-		printActionMessage("INSTALL");
+		if (!upateUpkPositionOnly) {
+			printActionMessage("INSTALL");
+		} else {
+			printActionMessage("GET RESOURCE UPK POSITIONS");
+		}
 		try {
-			installPackage = (XMod) u.unmarshal(modFile);
-			printXml(installPackage, "MOD FILE FOR INSTALLATION");
+			installPackage = (XMod) getUnMarshaller().unmarshal(modFile);
+			if (!upateUpkPositionOnly) {
+				printXml(installPackage, "MOD FILE FOR INSTALLATION");
+			}
 		} catch (Exception e) {
 			try {
 				throw new ExportFileAccessException();
 			} catch (ExportFileAccessException ex) {
 				ERROR = Error.INS_EXPORT_EXTRACTION;
-				ex.printStackTrace(System.err);
 				setDone(true);
 				return;
 			}
@@ -85,20 +99,27 @@ final public class Installer extends Main {
 		// Get upk files for each resource
 		List<ResFile> files = installPackage.getResFiles();
 		try {
-			upkFiles = findResourceUpkFile(files);
+			upkFiles = findResourceUpkFile(files, stream);
 			
 			List<ResFile> out = null;
 			
-			out = makeUPKChanges(files, new Vector<Path>(upkFiles));
-			
-			installPackage.setResFiles(out);
-			// TODO MAY HAVE TO INCLUDE SOME OF FULL INSTALL CHECK SO CAN
-			// ROLLBACK
-			installPackage.setIsInstalled(true);
-			InstallLog log = new InstallLog(installPackage.getName(), installPackage
-						.getAuthor(), installPackage.getDescription(), null, null);
-			saveXml(log);
-			printXml(log);
+			out = makeUPKChangesAndSearch(files, new Vector<Path>(upkFiles),
+						upateUpkPositionOnly, stream);
+						
+			if (!upateUpkPositionOnly) {
+				installPackage.setIsInstalled(true);
+				ModInstall log = new ModInstall(installPackage, out);
+				getGameState().getMods().add(installPackage);
+				getGameState().getInstallData().add(log);
+
+				saveXml(log);
+				printXml(log);
+				saveXml(getGameState());
+					
+			} else {
+				installPackage.setResFiles(out);
+			}		
+			saveXml(installPackage);
 			
 		} catch (UpkFileNotDecompressedException e) {
 			ERROR = Error.INS_UPK_FILE_COMPRESSED;
@@ -122,18 +143,9 @@ final public class Installer extends Main {
 		}
 		setDone(true);
 	}
+	
 	/**
 	 * Run on console.
-	 * 
-	 * @throws UpkFileNotDecompressedException
-	 * @throws UpkFileAccessException
-	 * @throws UpkFileNotFoundException
-	 * @throws ExportFileAccessException
-	 * @throws UpkResourceNotFoundException
-	 * @throws SearchInterruptedException
-	 * @throws XmlSaveException
-	 * 
-	 * @throws JAXBException
 	 */
 	public void runc() throws UpkFileNotFoundException, UpkFileAccessException,
 				UpkFileNotDecompressedException, ExportFileAccessException,
@@ -141,7 +153,7 @@ final public class Installer extends Main {
 		printActionMessage("INSTALL");
 		
 		try {
-			installPackage = (XMod) u.unmarshal(modFile);
+			installPackage = (XMod)  getUnMarshaller().unmarshal(modFile);
 			printXml(installPackage, "MOD EXPORT FILE FOR INSTALLATION");
 		} catch (JAXBException e) {
 			throw new ExportFileAccessException("JAXBException");
@@ -150,12 +162,10 @@ final public class Installer extends Main {
 		// Get upk files for each resource
 		List<ResFile> files = installPackage.getResFiles();
 		
-		upkFiles = findResourceUpkFile(files);
+		upkFiles = findResourceUpkFile(files, stream);
 		
-		List<ResFile> out = makeUPKChanges(files, new Vector<Path>(upkFiles));
-		
-		// TODO MAY HAVE TO INCLUDE SOME OF FULL INSTALL CHECK SO CAN
-		// ROLLBACK
+		List<ResFile> out = makeUPKChangesAndSearch(files, new Vector<Path>(upkFiles),
+					upateUpkPositionOnly, stream);
 		
 		installPackage.setResFiles(out);
 		installPackage.setIsInstalled(true);
@@ -168,12 +178,8 @@ final public class Installer extends Main {
 	/**
 	 * Gets all of the upk file owners for a resource.
 	 * 
-	 * @param files
-	 * @return
-	 * @throws UpkFileNotDecompressedException
-	 * @throws UpkFileNotFoundException
 	 */
-	static List<Path> findResourceUpkFile(List<ResFile> files)
+	static List<Path> findResourceUpkFile(List<ResFile> files, Stream stream)
 				throws UpkFileNotDecompressedException, UpkFileNotFoundException,
 				UpkFileAccessException {
 		
@@ -183,10 +189,10 @@ final public class Installer extends Main {
 		// Get all changed upk files from the resources
 		for (ResFile f : files) {
 			
-			Path path = Paths.get(config.getXcomPath(), COOKED, f.getUpkFilename());
+			Path path = Paths.get(getConfig().getCookedPath().toString(), f.getUpkFilename());
 			
 			if (Files.notExists(path)) {
-				print("CANNOT FIND UPK [" + path.getFileName(), "]");
+				print(stream, "CANNOT FIND UPK [" + path.getFileName(), "]");
 				throw new UpkFileNotFoundException();
 			}
 			try {
@@ -195,36 +201,36 @@ final public class Installer extends Main {
 				} else if (!isDecompressed(path)) {
 					if (!uncFiles.contains(path)) {
 						uncFiles.add(path);
-						print("UPK FOUND - NOT DECOMPRESSED [" + path.getFileName(), "]");
+						print(stream, "UPK FOUND - NOT DECOMPRESSED [" + path.getFileName(), "]");
 					}
 					continue;
 				}
 			} catch (IOException e) {
 				String msg = "CANNOT ACCESS UPK [" + path.getFileName() + "]";
-				print(msg, "");
+				print(stream, msg, "");
 				throw new UpkFileAccessException("IOException: " + msg);
 			}
-			print("UPK FOUND - IS DECOMPRESSED [" + path.getFileName(), "]");
+			print(stream, "UPK FOUND - IS DECOMPRESSED [" + path.getFileName(), "]");
 			upkFiles.add(path);
 		}
 		if (!uncFiles.isEmpty()) throw new UpkFileNotDecompressedException(uncFiles);
 		else return upkFiles;
 	}
+	
 	/**
 	 * Initiates worker threads to make Upk file changes.
 	 * 
-	 * @param files
-	 * @throws UpkResourceNotFoundException
-	 * @throws UpkFileAccessException
-	 * @throws SearchInterruptedException
-	 * 
-	 * @return
 	 */
-	static List<ResFile> makeUPKChanges(List<ResFile> files, Vector<Path> upkFiles)
+	static List<ResFile> makeUPKChangesAndSearch(List<ResFile> files,
+				Vector<Path> upkFiles, Boolean upateUpkPositionOnly, Stream stream)
 				throws UpkResourceNotFoundException, UpkFileAccessException,
 				SearchInterruptedException {
 		
-		print("INSTALLING RESOURCE CHANGES", "");
+		if (!upateUpkPositionOnly) {
+			print(stream, "INSTALLING RESOURCE CHANGES", "");
+		} else {
+			print(stream, "FINDING RESOURCE POSITION IN UPK", "");
+		}
 		Worker[] workers = new Worker[numWorkers];
 		Thread[] threads = new Thread[numWorkers];
 		
@@ -235,54 +241,71 @@ final public class Installer extends Main {
 			Boolean started = false;
 			
 			try (ByteScannerChannel sc = new ByteScannerChannel(upkFile);
-						FileChannel ch = sc.getChannel();
-						FileLock lock = ch.tryLock()) {
+						FileChannel ch = sc.getChannel()) {
 				started = true;
 				ByteBuffer buffer = ByteBuffer.wrap(new byte[(int) (ch.size())]);
 				
-				print(INSTALL, CONSOLE_SEPARATOR, "");
-				print(INSTALL, "SEARCHING [" + upkFile.getFileName(), "] FOR RESOURCE [", f
-							.getResName(), "]");
-				print("WITH CHECKSUM [" + f.getCheckSum(), "]");
-				print("WITH HASH [", MHash.toPrintString(f.getSearchHash()), "]");
-				
+				print(stream, CONSOLE_SEPARATOR, "");
 				ch.read(buffer);
 				
-				try {
-					workers = doSearch(numWorkers, workers, threads, i, buffer, f);
-				} catch (InterruptedException e) {
-					throw new SearchInterruptedException("InterruptedException");
-				}
-				
-				// GET WROKER RESULTS
-				for (Worker w : workers) {
+				if (f.getUpkOffset() == -1) {
 					
-					if (w.isInstalled) {
-						if (w.resultBytes != null) {
-							found = true;
-							
-							if (w.endOffset == -1) {
-								print("WRITING HEX EDITS [" + f.getResName(), "]");								
-								ch.position(w.resultInt);
-								ch.write(ByteBuffer.wrap(w.resultBytes));
-							
-							} else if (w.endOffset != -1) {
-								print("REPLACING RESOURCE [" + f.getResName(), "]");						
-								byte[] eof = new byte[(int) (ch.size() - w.endOffset)];
-								sc.seek(w.endOffset);
-								sc.readFully(eof);
-								sc.seek(w.resultInt);
-								sc.write(w.resultBytes);
-								sc.write(eof);
-							}			
-						}
-						editedUpks.add(upkFile);
-						files.get(i).setIsInstalled(true);
+					print(stream, "SEARCHING [" + upkFile.getFileName(), "] FOR RESOURCE [", f
+								.getResName(), "]");
+					print(stream, "CHECKSUM [" + f.getCheckSum(), "]");
+					print(stream, "HASH [", MHash.toPrintString(f.getSearchHash()), "]");
+					
+					try {
+						workers = doSearch(numWorkers, workers, threads, i, buffer, f,
+									upateUpkPositionOnly);
+					} catch (InterruptedException e) {
+						throw new SearchInterruptedException("InterruptedException");
+					}
+					
+				} else {
+					print(stream, "VERIFYING [" + upkFile.getFileName(), "] FOR RESOURCE [", f
+								.getResName(), "]");
+					print(stream, "CHECKSUM [" + f.getCheckSum(), "]");
+					
+					print(stream, "HASH [", MHash.toPrintString(f.getSearchHash()), "]");
+					try {
+						workers = doSearch(workers, threads, i, buffer, f);
+					} catch (InterruptedException e) {
+						throw new SearchInterruptedException("InterruptedException");
 					}
 				}
-				// Most likely an access issue as exists is checked earlier
-				// When file is open in UE Explorer it detects as accessible but
-				// does not throw any access exceptions. Even with lock.
+				
+				// GET WORKER RESULTS
+				for (Worker w : workers) {
+					
+					if (w != null && w.isFound) {
+						found = true;
+						
+						if (!upateUpkPositionOnly) {
+							if (w.resultBytes != null) {
+								
+								if (w.endOffset == -1) {
+									print(stream, "WRITING HEX EDITS [" + f.getResName(), "]");
+									ch.position(w.startOffset);
+									ch.write(ByteBuffer.wrap(w.resultBytes));
+									
+								} else if (w.endOffset != -1) {
+									print(stream, "REPLACING RESOURCE [" + f.getResName(), "]");
+									byte[] eof = new byte[(int) (ch.size() - w.endOffset)];
+									sc.seek(w.endOffset);
+									sc.readFully(eof);
+									sc.seek(w.startOffset);
+									sc.write(w.resultBytes);
+									sc.write(eof);
+								}
+							}
+							editedUpks.add(upkFile);
+							files.get(i).setIsInstalled(true);
+						}
+						print(stream, "SAVING RESOURCE LOCATION [" + w.startOffset, "]");
+						files.get(i).setUpkOffset(w.startOffset);
+					}
+				}
 				
 			} catch (IOException e) {
 				throw new UpkFileAccessException("IOException");
@@ -291,12 +314,12 @@ final public class Installer extends Main {
 					throw new UpkFileAccessException("IOException,started");
 				}
 				if (!found) {
-					// TODO MAY HAVE TO INCLUDE SOME OF FULL INSTALL CHECK SO
-					// CAN ROLLBACK
-					print("RESOURCE NOT FOUND [" + f.getResName(),
+					
+					print(stream, "RESOURCE NOT FOUND [" + f.getResName(),
 								"] PLEASE CHECK YOUR CONFIG SETTINGS.", "");
 					
-					print("\n",
+					print(stream,
+								"\n",
 								"THE SYSTEM CURRENTLY DOES NOT UNDO CHANGES PLEASE DO SO MANUALLY AND REPORT ERROR.\n",
 								CONSOLE_SEPARATOR);
 					throw new UpkResourceNotFoundException();
@@ -306,22 +329,14 @@ final public class Installer extends Main {
 		}
 		return files;
 	}
+	
 	/**
 	 * Creates searchers and searcher threads. Does the search.
 	 * 
-	 * @param threadsNum
-	 * @param workers
-	 * @param threads
-	 * @param i
-	 * @param buffer
-	 * @param ins
-	 * @param progress
-	 * @param f
-	 * @return
-	 * @throws InterruptedException
 	 */
 	static Worker[] doSearch(int threadsNum, Worker[] workers, Thread[] threads, int i,
-				ByteBuffer buffer, ResFile f) throws InterruptedException {
+				ByteBuffer buffer, ResFile f, Boolean upateUpkPositionOnly)
+				throws InterruptedException {
 		
 		final CountDownLatch mainCDLatch = new CountDownLatch(1);
 		final CountDownLatch workerCDLatch = new CountDownLatch(threadsNum);
@@ -330,10 +345,10 @@ final public class Installer extends Main {
 		for (int j = 0; j < threadsNum; ++j) {
 			
 			int start = j * length;
-			int end = start + (length - 1);
+			int end = start + (length - 1) - f.getSearchHashLength();
 			
-			workers[j] = new Worker(f, buffer.array(), start, end, md, mainCDLatch,
-						workerCDLatch, threads, j + 1);
+			workers[j] = new Worker(f, buffer.array(), start, end, getDigest(), mainCDLatch,
+						workerCDLatch, threads, j + 1, upateUpkPositionOnly);
 			
 			threads[j] = new Thread(workers[j]);
 		}
@@ -344,8 +359,22 @@ final public class Installer extends Main {
 		return workers;
 	}
 	
-	private static void print(String... strings) {
-		print(INSTALL, strings);
+	/**
+	 * Creates searchers and searcher threads. Does the search.
+	 * 
+	 */
+	static Worker[] doSearch(Worker[] workers, Thread[] threads, int i, ByteBuffer buffer,
+				ResFile f) throws InterruptedException {
+		
+		final CountDownLatch mainCDLatch = new CountDownLatch(1);
+		final CountDownLatch workerCDLatch = new CountDownLatch(1);
+		workers[0] = new Worker(f, buffer.array(), f.getUpkOffset(), f.getUpkOffset()
+					+ f.getSearchHashLength() - 1, getDigest(), mainCDLatch, workerCDLatch, threads, 1,
+					false);
+		threads[0] = new Thread(workers[0]);
+		threads[0].start();
+		mainCDLatch.await();
+		return workers;
 	}
 	
 	public XMod getInstallPackage() {
@@ -360,8 +389,6 @@ final public class Installer extends Main {
 	 * Gui only. Determines the progress to be allocated for each part of work to
 	 * be done.
 	 * 
-	 * @param mConfig
-	 * @return
 	 */
 	static float[] calculateWorkProgress(List<ResFile> files, Vector<Path> upkFiles,
 				int threadsNum) {

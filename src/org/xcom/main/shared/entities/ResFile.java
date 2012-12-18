@@ -20,30 +20,19 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlRootElement(name = "ResFile")
 @XmlType(propOrder = {
-			"id", "resName", "isSameSize", "upkFilename", "checkSum", "searchHashLength",
+			"id", "resName", "isSameSize", "upkFilename", "upkOffset", "checkSum", "searchHashLength",
 			"searchHash", "changes", "XMod"
 })
 public class ResFile implements Serializable, ModXml {
 	private static final long serialVersionUID = 1L;
 	
 	
-	private Integer id;
-	
-	
+	private Integer id;	
 	private String upkFilename;
-	
-	
 	private String resName;
-	
-	
 	private Boolean isSameSize = true;
-	
-	
 	private int searchHashLength;
-	
 	private int checkSum;
-	
-	
 	private String searchHash;
 
 	private boolean isInstalled;
@@ -51,6 +40,7 @@ public class ResFile implements Serializable, ModXml {
 	private List<HexEdit> changes;
 	
 	private XMod xMod;
+	private int upkOffset;
 	
 	// Clean constructor required for serialisation
 	public ResFile() {}
@@ -60,13 +50,14 @@ public class ResFile implements Serializable, ModXml {
 	}
 	
 	public ResFile(Integer id, String resName, String filename, String searchHash,
-				int hashLength, int sum) {
+				int hashLength, int sum, int upkOffset) {
 		this.id = id;
 		this.resName = resName;
 		this.upkFilename = filename;
 		this.searchHash = searchHash;
 		this.searchHashLength = hashLength;
 		this.checkSum = sum;
+		this.setUpkOffset(upkOffset);
 	}
 	
 	@XmlAttribute(name = "Id")
@@ -132,7 +123,6 @@ public class ResFile implements Serializable, ModXml {
 		this.checkSum = sum;
 	}
 	
-	// @XmlElement(name = "IsInstalled")
 	@XmlTransient
 	public Boolean getIsInstalled() {
 		return isInstalled;
@@ -151,15 +141,23 @@ public class ResFile implements Serializable, ModXml {
 		this.xMod = xMod;
 	}
 	
-	// @XmlTransient - if go to SOAP or REST may need to re think
 	@XmlElementWrapper(name = "Changes")
 	@XmlElement(name = "HexEdit")
 	public List<HexEdit> getChanges() {
 		return changes;
 	}
-	
+
 	public void setChanges(List<HexEdit> edits) {
 		this.changes = edits;
+	}
+	
+	@XmlElement(name = "UpkOffset")
+	public int getUpkOffset() {
+		return upkOffset;
+	}
+
+	public void setUpkOffset(int upkOffset) {
+		this.upkOffset = upkOffset;
 	}
 	
 	@Override
@@ -204,5 +202,4 @@ public class ResFile implements Serializable, ModXml {
 	public String getPrintName() {
 		return "RESOURCE FILE";
 	}
-	
 }

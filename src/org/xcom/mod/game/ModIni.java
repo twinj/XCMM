@@ -13,15 +13,11 @@ public class ModIni {
 																										// current file may need to
 																										// increase
 	
-	private static final String COMMENTS = ";#";
-	private static final String OPERATORS = ":=";
 	static final char SECTION_BEGIN = '[';
 	static final char SECTION_END = ']';
 	
-	private Path path;
 	
 	public ModIni(Path path) {
-		this.path = path;
 		mapIni(path);
 	}
 	

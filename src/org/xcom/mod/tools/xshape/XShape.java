@@ -442,7 +442,7 @@ public class XShape extends Main {
 			sc.write(bytes);
 			sc.write(eof);
 			
-			Files.write(Paths.get(config.getUnpackedPath(), "install.ini"), iniBackup);
+			Files.write(Paths.get(getConfig().getUnpackedPath(), "install.ini"), iniBackup);
 		}
 	}
 	

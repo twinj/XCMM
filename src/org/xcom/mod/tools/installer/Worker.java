@@ -26,6 +26,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.xcom.main.shared.Main;
 import org.xcom.main.shared.entities.HexEdit;
 import org.xcom.main.shared.entities.ResFile;
+import org.xcom.mod.gui.streams.Stream;
 import org.xcom.mod.tools.xshape.MHash;
 
 /**
@@ -40,21 +41,21 @@ final public class Worker implements Runnable {
 	final int end;
 	final MessageDigest md;
 	int id;
+	boolean upateUpkPositionOnly = false;
 	
-	// @SuppressWarnings("VolatileArrayField")
 	final CountDownLatch mainCountDownLock;
 	final CountDownLatch workerCountDownLock;
 	final Thread[] workers;
 	
 	volatile byte[] resultBytes = null;
-	volatile int resultInt = -1;
 	volatile int startOffset = -1;
 	volatile int endOffset = -1;
-	volatile boolean isInstalled = false;
+	volatile boolean isFound = false;
+	private Stream stream;
 	
 	public Worker(ResFile mod, byte[] buffer, int start, int end, MessageDigest md,
 				CountDownLatch mainCountDownLock, CountDownLatch workerCountDownLock,
-				Thread[] workers, int id) {
+				Thread[] workers, int id, Boolean upateUpkPositionOnly) {
 		
 		this.mod = mod;
 		this.buffer = buffer;
@@ -65,13 +66,19 @@ final public class Worker implements Runnable {
 		this.workerCountDownLock = workerCountDownLock;
 		this.workers = workers;
 		this.id = id;
+		this.upateUpkPositionOnly = upateUpkPositionOnly;
+		
+		if (upateUpkPositionOnly) {
+			this.stream = Main.MAKE;
+		} else {
+		this.stream = Main.INSTALL;
+		}
 	}
 	
 	@Override
 	public void run() {
 		
 		final int hashDataLength = mod.getSearchHashLength();
-		final int end = this.end - hashDataLength;
 		
 		final int targetSum = mod.getCheckSum();
 		final byte[] searchHash = MHash.hexStringGetBytes(mod.getSearchHash());
@@ -103,38 +110,44 @@ final public class Worker implements Runnable {
 					if (Arrays.equals(hash, searchHash)) {
 						print("FOUND - CHECKSUM & HASH MATCH");
 						
-						for (final HexEdit c : mod.getChanges()) {
-							print("BUFFER OFFSET [" + c.getOffset(), "] CHANGED TO [" + c.getData(),
-										"]");
-							
-							if (!mod.getIsSameSize()) {
-								resultBytes = MHash.hexStringGetBytes(mod.getChanges().get(0).getData());
-								
-								print("BUFFER OFFSET START [" + j, "] END OFFSET [" + (m),
-											"] WITH [" + resultBytes.length + "] BYTES TO WRITE");
-							} else {
-								
-								bufferSegmt[c.getOffset()] = DatatypeConverter
-											.parseHexBinary(c.getData())[0];
+						
+						if (!upateUpkPositionOnly) {
+							for (final HexEdit c : mod.getChanges()) {
 								
 								print("BUFFER OFFSET [" + c.getOffset(), "] CHANGED TO [" + c.getData(),
 											"]");
+								
+								if (!mod.getIsSameSize()) {
+									resultBytes = MHash
+												.hexStringGetBytes(mod.getChanges().get(0).getData());
+									
+									print("BUFFER OFFSET START [" + j, "] END OFFSET [" + (m), "] WITH ["
+												+ resultBytes.length + "] BYTES TO WRITE");
+								} else {
+									
+									bufferSegmt[c.getOffset()] = DatatypeConverter.parseHexBinary(c
+												.getData())[0];
+									
+									print("BUFFER OFFSET [" + c.getOffset(),
+												"] CHANGED TO [" + c.getData(), "]");
+								}
+							}
+							
+							if (!mod.getIsSameSize()) {
+								// Instead of changes replace. Changes will be null in this
+								// instance so above code is skipped
+								endOffset = m;
+								
+							} else {
+								resultBytes = bufferSegmt;
 							}
 						}
 						
-						if (!mod.getIsSameSize()) {
-							// Instead of changes replace. Changes will be null in this
-							// instance so above code is skipped
-							endOffset = m;
-							
-						} else {
-							resultBytes = bufferSegmt;
-						}
-						resultInt = j;
-						isInstalled = true;
+						startOffset = j;
+						isFound = true;
 						
 						for (Thread t : workers) {
-							if (!Thread.currentThread().equals(t)) {
+							if (t != null && !Thread.currentThread().equals(t)) {
 								t.interrupt();
 							}
 						}
@@ -154,7 +167,7 @@ final public class Worker implements Runnable {
 		mainCountDownLock.countDown();
 	}
 	
-	private static void print(String... strings) {
-		Main.print(Main.INSTALL, strings);
+	private void print(String... strings) {
+		Main.print(stream, strings);
 	}
 }

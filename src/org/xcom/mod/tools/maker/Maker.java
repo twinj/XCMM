@@ -43,12 +43,19 @@ import org.xcom.mod.tools.xshape.XModXmlAccessException;
 
 /**
  * @author Anthony Surma
+ * @author Daniel Kemp
  * 
  */
 final public class Maker extends Main {
 	
 	private ModConfig modConfig;
+	private volatile XMod xMod;
 	
+	
+	public XMod getXMod() {
+		return this.xMod;
+	}
+
 	public Maker() {
 		super();
 	}
@@ -65,9 +72,10 @@ final public class Maker extends Main {
 			saveXml(modConfig);
 			copyFile(modConfig.getXmlSavePath(), Paths.get("temp\\history.xml"), true);
 			printXml(modConfig);
-			XMod xMod = generateXMod(modConfig);
+			xMod = generateXMod(modConfig);
 			saveXModFiles(modConfig, xMod);
 			
+	
 		} catch (XmlSaveException ex) {
 			ERROR = Error.XML_SAVE_ERROR;
 			ex.printStackTrace(System.err);
@@ -94,13 +102,6 @@ final public class Maker extends Main {
 	/**
 	 * Run on console.
 	 * 
-	 * @throws XmlSaveException
-	 * @throws DetectUpkChangesException
-	 * @throws ProcessFileChangesException
-	 * @throws XModXmlAccessException
-	 * @throws CopyFileException
-	 * @throws CalculateHashException
-	 * @throws UpkFileNotExtractedException
 	 */
 	public void runc() throws XmlSaveException, XModXmlAccessException,
 				ProcessFileChangesException, DetectUpkChangesException, CopyFileException,
@@ -138,12 +139,9 @@ final public class Maker extends Main {
 			}
 		}
 	}
+	
 	/**
 	 * Save either modified or original mod resources to the mod directory.
-	 * 
-	 * @param files
-	 * @param path
-	 * @throws CopyFileException
 	 */
 	static void copyFiles(List<Path> files, Path path, Boolean replaceExisting,
 				Boolean alternatePaths) throws CopyFileException {
@@ -153,7 +151,7 @@ final public class Maker extends Main {
 			Path p = null;
 			
 			if (alternatePaths) {
-				int unpackedECount = Paths.get(config.getUnpackedPath()).toAbsolutePath()
+				int unpackedECount = Paths.get(getConfig().getUnpackedPath()).toAbsolutePath()
 							.getNameCount();
 				p = f.toAbsolutePath().getParent();
 				p = Paths.get(path.toString(), p.subpath(unpackedECount, p.getNameCount())
@@ -174,14 +172,10 @@ final public class Maker extends Main {
 	
 	/**
 	 * Gets Upk filename
-	 * 
-	 * @param filepath
-	 * 
-	 * @return String
 	 */
 	static String getUpkFilename(Path resource) {
 		
-		int unpackedECount = Paths.get(config.getUnpackedPath()).toAbsolutePath()
+		int unpackedECount = Paths.get(getConfig().getUnpackedPath()).toAbsolutePath()
 					.getNameCount();
 		String ret = resource.toAbsolutePath().subpath(unpackedECount, unpackedECount + 1)
 					.toString()
@@ -192,14 +186,6 @@ final public class Maker extends Main {
 	
 	/**
 	 * Process the file changes and creates the actual module.
-	 * 
-	 * @param monfig
-	 * @return
-	 * @throws XModXmlAccessException
-	 * @throws ProcessFileChangesException
-	 * @throws DetectUpkChangesException
-	 * @throws CalculateHashException
-	 * @throws UpkFileNotExtractedException
 	 */
 	static XMod generateXMod(ModConfig monfig) throws UpkFileNotExtractedException,
 				XModXmlAccessException, ProcessFileChangesException, DetectUpkChangesException,
@@ -224,14 +210,14 @@ final public class Maker extends Main {
 		// Write the xml unmarshalled object
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 			
-			m.marshal(xMod, baos);
+			getMarshaller().marshal(xMod, baos);
 			byte[] b = baos.toByteArray();
 			
 			// Calculate hash
-			md.update(b, 0, b.length);
-			b = md.digest();
+			getDigest().update(b, 0, b.length);
+			b = getDigest().digest();
 			xMod.setHash(MHash.toString(b));
-			md.reset();
+			getDigest().reset();
 			
 			print("MOD HASH [", MHash.toPrintString(b), "]");
 			printXml(xMod);
@@ -266,9 +252,9 @@ final public class Maker extends Main {
 		// For each modded file get changes
 		for (String path : mConfig.getOriginalFilePaths()) {
 			
-			Path originalResource = Paths.get(config.getUnpackedPath(), path);
+			Path originalResource = Paths.get(getConfig().getUnpackedPath(), path);
 			String upkFileName = getUpkFilename(originalResource);
-			Path upk = Paths.get(config.getCookedPath().toString(), upkFileName);
+			Path upk = Paths.get(getConfig().getCookedPath().toString(), upkFileName);
 			
 			// Test is upk is uncompressed and unpacked so can create mod if not do
 			// work
@@ -293,7 +279,7 @@ final public class Maker extends Main {
 				ResFile f = null;
 				try {
 					f = new ResFile(null, originalResource.getFileName().toString(), upkFileName,
-								hash.toString(), (int) Files.size(originalResource), (int) sum);
+								hash.toString(), (int) Files.size(originalResource), (int) sum, -1);
 				} catch (IOException e) {
 					throw new ProcessFileChangesException("IOException,size");
 				}
@@ -311,14 +297,9 @@ final public class Maker extends Main {
 		if (!uncFiles.isEmpty()) throw new UpkFileNotExtractedException(uncFiles);
 		else return changes;
 	}
+	
 	/**
 	 * Sum the byte contents of the file to help with confirming hash
-	 * 
-	 * @param path
-	 * 
-	 * @return sum
-	 * @throws ProcessFileChangesException
-	 * 
 	 */
 	static int getResourceCheckSum(Path path) throws ProcessFileChangesException {
 		int sum = 0;
@@ -339,21 +320,11 @@ final public class Maker extends Main {
 	/**
 	 * Detect the changes made to the UPK file and return a List containing the
 	 * offset position and change data.
-	 * 
-	 * @param originalPath
-	 *          path to original file
-	 * @param modifiedPath
-	 *          path to modified file
-	 * 
-	 * @return a List of changes
-	 * @throws DetectUpkChangesException
 	 */
 	static List<HexEdit> getUPKChanges(Path originalPath, Path modifedPath)
 				throws DetectUpkChangesException {
 		
 		List<HexEdit> list = new ArrayList<HexEdit>();
-		StringBuilder hexStringB = null;
-		Boolean overwrite = false;
 		
 		try (InputStream modified = Files.newInputStream(modifedPath);
 					InputStream original = Files.newInputStream(originalPath)) {
@@ -363,46 +334,43 @@ final public class Maker extends Main {
 			
 			if (Files.size(modifedPath) != Files.size(originalPath)) {
 				print("RESOURCE FILE SIZES ARE DIFFERENT ASSUMING YOU WANT TO OVERWITE RESOURCE");
-				overwrite = true;
-				hexStringB = new StringBuilder((int) Files.size(modifedPath));
-			}
-			
-			// Compare files save offset position and data change
-			int offset = 0, change;
-			
-			while ((change = modified.read()) >= 0) {
+				String hexStringDataFull = null;
+				String hexStringBackupFull = null;
 				
-				if (overwrite) {
-					String hex = Integer.toHexString(change).toUpperCase();
-					if (hex.length() == 1) hexStringB.append("0");
-					hexStringB.append(hex);
+				byte[] data = new byte[(int) Files.size(modifedPath)];
+				modified.read(data);
+				hexStringDataFull = MHash.toString(data);
+				
+				data = new byte[(int) Files.size(originalPath)];
+				original.read(data);
+				hexStringBackupFull = MHash.toString(data);
+				
+				list.add(new HexEdit(null, -1, hexStringDataFull, hexStringBackupFull));
+			} else {
+				
+				int offset = 0, change;
+				
+				while ((change = modified.read()) >= 0) {
+					int base = original.read();
+					if (change != base) {
+						String hexStringData = Integer.toHexString(change).toUpperCase();
+						String hexStringBackup = Integer.toHexString(base).toUpperCase();
+						
+						if (hexStringData.length() == 1) hexStringData = "0" + hexStringData;
+						if (hexStringBackup.length() == 1) hexStringBackup = "0" + hexStringBackup;
+						
+						list.add(new HexEdit(null, offset, hexStringData, hexStringBackup));
+						print("CHANGE DETECTED @ OFFEST [" + offset, "] EDIT [", hexStringData,
+									"] BACKUP BASE [", hexStringBackup, "]");
+					}
 					++offset;
-					continue;
 				}
-				
-				// If modified not equal to original
-				if (change != original.read()) {
-					String hexString = Integer.toHexString(change).toUpperCase();
-					
-					if (hexString.length() == 1) hexString = "0" + hexString;
-					
-					list.add(new HexEdit(null, offset, hexString));
-					print("CHANGE DETECTED @ OFFEST [" + offset, "] EDIT [", hexString, "]");
-					
-					// Do not break comparison loop at end as there may be more
-					// changes
-				}
-				++offset; // Increment offset change position
 			}
 		} catch (IOException e) {
 			throw new DetectUpkChangesException("IOException,InputStream,read");
 		}
-		if (overwrite) {
-			list.add(new HexEdit(null, -1, hexStringB.toString()));
-		}
 		return list;
 	}
-	
 	static void print(String... strings) {
 		print(MAKE, strings);
 	}
@@ -410,9 +378,6 @@ final public class Maker extends Main {
 	/**
 	 * Gui only. Determines the progress to be allocated for each part of work to
 	 * be done.
-	 * 
-	 * @param mConfig
-	 * @return
 	 */
 	static float[] calculateWorkProgress(ModConfig mConfig) {
 		List<Path> editedFiles = mConfig.getOriginalFiles();
