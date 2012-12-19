@@ -7,6 +7,8 @@ package org.xcom.main.shared.entities;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Vector;
+
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -37,7 +39,7 @@ public class ResFile implements Serializable, ModXml {
 
 	private boolean isInstalled;
 	
-	private List<HexEdit> changes;
+	private Vector<HexEdit> changes;
 	
 	private XMod xMod;
 	private int upkOffset;
@@ -143,11 +145,11 @@ public class ResFile implements Serializable, ModXml {
 	
 	@XmlElementWrapper(name = "Changes")
 	@XmlElement(name = "HexEdit")
-	public List<HexEdit> getChanges() {
+	public Vector<HexEdit> getChanges() {
 		return changes;
 	}
 
-	public void setChanges(List<HexEdit> edits) {
+	public void setChanges(Vector<HexEdit> edits) {
 		this.changes = edits;
 	}
 	

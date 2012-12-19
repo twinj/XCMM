@@ -169,9 +169,7 @@ public class SettingsDialog extends JDialog {
 		toolsTab.setVisible(false);
 		toolsTab.setEnabled(false);
 		toolsTab.setLayout(null);
-		
-		
-		
+
 		decompressorPanel = new GetFilePanel("Unreal Package Decompresor:", new java.io.File(Main.USER_DIR), JFileChooser.FILES_ONLY );
 		decompressorPanel.setPreferredSize(new Dimension(255, 50));
 		decompressorPanel.setBounds(4, 50, 255, 50);
@@ -378,6 +376,9 @@ public class SettingsDialog extends JDialog {
 				config.setExtractorPath(extractorPath);
 			}
 			
+			config.setAuthor(name);
+			config.setUnpackedPath(unpackedPath);
+			
 			final Path cookedCore = Paths.get(config.getCookedPath().toString(), "Core.upk");
 			
 			if (name.isEmpty() || unpackedPath.isEmpty() || xComPath.isEmpty()) {
@@ -459,9 +460,7 @@ public class SettingsDialog extends JDialog {
 				title = "Settings saved.";
 				op = JOptionPane.PLAIN_MESSAGE;
 			}
-			config.setAuthor(name);
-			config.setUnpackedPath(unpackedPath);
-			
+						
 			try {
 				Main.saveXml(config);
 			} catch (XmlSaveException ex) {

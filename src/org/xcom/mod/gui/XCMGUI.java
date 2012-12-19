@@ -36,6 +36,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipException;
 
@@ -64,7 +65,7 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
-import javax.swing.ListSelectionModel;
+import javax.swing.RowFilter;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
@@ -74,16 +75,22 @@ import javax.swing.border.SoftBevelBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.TableRowSorter;
 import javax.swing.text.DefaultCaret;
 import javax.xml.bind.JAXBException;
 
 import org.xcom.main.shared.DownloadFailedException;
 import org.xcom.main.shared.Main;
+import org.xcom.main.shared.XmlSaveException;
 import org.xcom.main.shared.entities.Config;
 import org.xcom.main.shared.entities.ModConfig;
+import org.xcom.main.shared.entities.ModInstall;
 import org.xcom.main.shared.entities.XMod;
+import org.xcom.mod.gui.TableList.ModFile;
 import org.xcom.mod.gui.TableList.MyTableModel;
 import org.xcom.mod.gui.dialogues.AboutDialog;
 import org.xcom.mod.gui.dialogues.SettingsDialog;
@@ -95,6 +102,7 @@ import org.xcom.mod.gui.workers.DownloadWorker;
 import org.xcom.mod.gui.workers.ExtractInBackGround;
 import org.xcom.mod.gui.workers.RunInBackground;
 import org.xcom.mod.tools.installer.Installer;
+import org.xcom.mod.tools.installer.Uninstaller;
 import org.xcom.mod.tools.maker.Maker;
 import org.xcom.mod.tools.xshape.XShape;
 
@@ -145,6 +153,10 @@ public class XCMGUI extends Main {
 	
 	private static JFrame frame;
 	private GetFilePanel selectIni;
+	private JTextField txtNameFilter;
+	private JButton uninstallButton;
+	private JTextField textFieldModVersion;
+	private JTextField textFieldGameVersion;
 	
 	/**
 	 * Create the gui.
@@ -173,6 +185,7 @@ public class XCMGUI extends Main {
 		
 		MAKE = Stream.getStream(MAKE_DELEGATE, mos);
 		INSTALL = Stream.getStream(INSTALL_DELEGATE, ios);
+		UNINSTALL = Stream.getStream(UNINSTALL_DELEGATE, ios);
 		MAIN = Stream.getStream(MAIN_DELEGATE, hos);
 		FACING_STREAM = MAIN;
 		
@@ -210,7 +223,7 @@ public class XCMGUI extends Main {
 		if (Files.exists(extract)) {
 			this.getExtractorButton.setEnabled(false);
 		}
-		Path history = Paths.get("temp", "history.xml");
+		Path history = Paths.get("config", "history.xml");
 		
 		if (Files.exists(history)) {
 			ModConfig mod = null;
@@ -240,6 +253,7 @@ public class XCMGUI extends Main {
 		} else {
 			fieldModAuthor.setText(getConfig().getAuthor());
 		}
+		textFieldGameVersion.setText(getGameVersion());
 	}
 	
 	/**
@@ -323,9 +337,20 @@ public class XCMGUI extends Main {
 							switch (n1) {
 								case JOptionPane.YES_OPTION :
 									Path exeFile = Paths.get(getConfig().getXcomPath(), RELATIVE_EXE_PATH);
-									runXShapeInBackGround(exeFile, (ArrayList<Path>) f.getUpks(),
+									runXShapeInBackGround(exeFile, new Vector<Path>(f.getUpks()),
 												(JComponent) e.getSource(), FACING_STREAM);
 									break;
+							}
+							List<XMod> files = modDirectoryTree.getMods();
+							
+							for (XMod m : files) {
+								if (m.getIsInstalled()) {
+									m.setIsInstalled(false);
+									try {
+										saveXml(m);
+									} catch (XmlSaveException ex) {}
+									return;
+								}
 							}
 						}
 						break;
@@ -525,11 +550,7 @@ public class XCMGUI extends Main {
 		btnExploreGameFiles.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnExploreGameFiles.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				try {
-					Desktop.getDesktop().open(XCMGUI.getConfig().getCookedPath().toFile());
-				} catch (IOException ex) {
-					ex.printStackTrace();
-				}
+				desktopOpen(XCMGUI.getConfig().getCookedPath().toFile());
 			}
 		});
 		
@@ -538,8 +559,7 @@ public class XCMGUI extends Main {
 		btnExploreUnpacked.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnExploreUnpacked.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				final File file = new File(XCMGUI.getConfig().getUnpackedPath());
-				desktopOpen(file);
+				desktopOpen(new File(XCMGUI.getConfig().getUnpackedPath()));
 			}
 		});
 		
@@ -548,8 +568,7 @@ public class XCMGUI extends Main {
 		btnExploreModFiles.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnExploreModFiles.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				final File file = Config.getModPath().toFile();
-				desktopOpen(file);
+				desktopOpen(Config.getModPath().toFile());
 			}
 		});
 		
@@ -571,14 +590,8 @@ public class XCMGUI extends Main {
 				fc.setCurrentDirectory(new File(getConfig().getXcomPath(), "XComGame\\Config"));
 				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				fc.setDragEnabled(true);
-				int returnVal = fc.showOpenDialog(frame);
-				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					java.io.File file = fc.getSelectedFile();
-					try {
-						Desktop.getDesktop().open(file);
-					} catch (IOException ex) {
-						ex.printStackTrace();
-					}
+				if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+					desktopOpen(fc.getSelectedFile());
 				}
 			}
 		});
@@ -601,10 +614,8 @@ public class XCMGUI extends Main {
 		btnGetFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnGetFileHash.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		btnGetFileHash.addActionListener(new GetHashButton(frame) {
-			
 			@Override
 			protected File getFile() {
-				
 				return getConfig().getCookedPath().toFile();
 			}
 		});
@@ -614,7 +625,6 @@ public class XCMGUI extends Main {
 		btnGetUnpackedFile.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnGetUnpackedFile.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		btnGetUnpackedFile.addActionListener(new GetHashButton(frame) {
-			
 			@Override
 			protected File getFile() {
 				return new File(getConfig().getUnpackedPath());
@@ -625,7 +635,6 @@ public class XCMGUI extends Main {
 		JButton btnGetModFileHash = new JButton("Mods");
 		btnGetModFileHash.setAlignmentX(Component.CENTER_ALIGNMENT);
 		btnGetModFileHash.addActionListener(new GetHashButton(frame) {
-			
 			@Override
 			protected File getFile() {
 				return Config.getModPath().toFile();
@@ -652,20 +661,10 @@ public class XCMGUI extends Main {
 		getDecompressorButton.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				JComponent src = (JComponent) e.getSource();
-				
-				if (Desktop.isDesktopSupported()) {
-					try {
-						Desktop.getDesktop().browse(new URL("http://www.gildor.org/").toURI());
-					} catch (IOException | URISyntaxException ex) {
-						ex.printStackTrace(System.err);
-					}
-				}
-				final String url = HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP;
-				final String saveAs = "decompress.zip";
-				
+				desktopBrowse(HTTP_WWW_GILDOR_ORG);
 				try {
-					downloadZippedTool(url, saveAs, src, null);
+					downloadZippedTool(HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP, "decompress.zip",
+								(JComponent) e.getSource(), null);
 				} catch (MalformedURLException ex) {}
 			}
 		});
@@ -676,21 +675,13 @@ public class XCMGUI extends Main {
 		getExtractorButton.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				JComponent src = (JComponent) e.getSource();
-				final String url = HTTP_WWW_GILDOR_ORG_DOWN_EXTRACT_ZIP;
-				final String saveAs = "extract.zip";
-				
-				if (Desktop.isDesktopSupported()) {
-					try {
-						Desktop.getDesktop().browse(new URL("http://www.gildor.org/").toURI());
-					} catch (IOException | URISyntaxException ex) {
-						ex.printStackTrace(System.err);
-					}
-				}
+				desktopBrowse(HTTP_WWW_GILDOR_ORG);
 				try {
-					downloadZippedTool(url, saveAs, src, null);
+					downloadZippedTool(HTTP_WWW_GILDOR_ORG_DOWN_EXTRACT_ZIP, "extract.zip",
+								(JComponent) e.getSource(), null);
 				} catch (MalformedURLException ignore) {}
 			}
+			
 		});
 		homeTab.add(getExtractorButton);
 		
@@ -701,14 +692,7 @@ public class XCMGUI extends Main {
 		gildorsLinkButton.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				
-				if (Desktop.isDesktopSupported()) {
-					try {
-						Desktop.getDesktop().browse(new URL("http://www.gildor.org/").toURI());
-					} catch (IOException | URISyntaxException ex) {
-						ex.printStackTrace(System.err);
-					}
-				}
+				desktopBrowse(HTTP_WWW_GILDOR_ORG);
 			}
 		});
 		gildorsLinkButton.setBorderPainted(false);
@@ -802,6 +786,32 @@ public class XCMGUI extends Main {
 		JPanel panel = new JPanel();
 		panel.setPreferredSize(new Dimension(10, 100));
 		splitPane.setRightComponent(panel);
+		
+		JLabel lblModVerison = new JLabel("Mod Verison:   ");
+		panel.add(lblModVerison);
+		
+		Component horizontalStrut_6 = Box.createHorizontalStrut(20);
+		horizontalStrut_6.setPreferredSize(new Dimension(16, 0));
+		horizontalStrut_6.setMinimumSize(new Dimension(16, 0));
+		panel.add(horizontalStrut_6);
+		
+		textFieldModVersion = new JTextField();
+		textFieldModVersion.setToolTipText("Recommended pattern: incremenet 1 for each gameversion. Increment a for any bug fix or change.");
+		textFieldModVersion.setText("1a");
+		panel.add(textFieldModVersion);
+		textFieldModVersion.setColumns(10);
+		
+		JLabel lblGameVersion = new JLabel("Game Version: ");
+		panel.add(lblGameVersion);
+		
+		Component horizontalStrut_7 = Box.createHorizontalStrut(20);
+		horizontalStrut_7.setPreferredSize(new Dimension(16, 0));
+		horizontalStrut_7.setMinimumSize(new Dimension(16, 0));
+		panel.add(horizontalStrut_7);
+		
+		textFieldGameVersion = new JTextField();
+		panel.add(textFieldGameVersion);
+		textFieldGameVersion.setColumns(10);
 		
 		JSeparator separator = new JSeparator();
 		separator.setPreferredSize(new Dimension(200, 3));
@@ -945,18 +955,13 @@ public class XCMGUI extends Main {
 		
 		installButton = new JButton("Install");
 		installButton.addActionListener(new InstallButtonAction());
+		
+		JSeparator separator_4 = new JSeparator();
+		panelToolBar.add(separator_4);
 		installButton.setIcon(new ImageIcon(XCMGUI.class
-					.getResource("/org/xcom/mod/gui/icons/application_go.png")));
+					.getResource("/org/xcom/mod/gui/icons/table_row_insert.png")));
 		installButton.setEnabled(false);
 		panelToolBar.add(installButton);
-		
-		xShapeButton = new JButton("XShape");
-		xShapeButton.addActionListener(new XShapeButtonAction());
-		xShapeButton.setIcon(new ImageIcon(XCMGUI.class
-					.getResource("/org/xcom/mod/gui/icons/application_xp_terminal.png")));
-		xShapeButton
-					.setToolTipText("Run XShape once you have modded files. Keeps track of modded files.");
-		panelToolBar.add(xShapeButton);
 		
 		JButton btnNewButton = new JButton("PatchIni");
 		btnNewButton.addActionListener(new ActionListener() {
@@ -990,8 +995,29 @@ public class XCMGUI extends Main {
 			}
 		});
 		btnNewButton.setIcon(new ImageIcon(XCMGUI.class
-					.getResource("/org/xcom/mod/gui/icons/application_xp_terminal.png")));
+					.getResource("/org/xcom/mod/gui/icons/application_go.png")));
 		panelToolBar.add(btnNewButton);
+		
+		JSeparator separator_7 = new JSeparator();
+		panelToolBar.add(separator_7);
+		
+		uninstallButton = new JButton("Uninstall");
+		uninstallButton.addActionListener(new UninstallAction());
+		uninstallButton.setIcon(new ImageIcon(XCMGUI.class
+					.getResource("/org/xcom/mod/gui/icons/table_row_delete.png")));
+		uninstallButton.setEnabled(false);
+		panelToolBar.add(uninstallButton);
+		
+		xShapeButton = new JButton("XShape");
+		xShapeButton.addActionListener(new XShapeButtonAction());
+		
+		JSeparator separator_8 = new JSeparator();
+		panelToolBar.add(separator_8);
+		xShapeButton.setIcon(new ImageIcon(XCMGUI.class
+					.getResource("/org/xcom/mod/gui/icons/sum.png")));
+		xShapeButton
+					.setToolTipText("Run XShape once you have modded files. Keeps track of modded files.");
+		panelToolBar.add(xShapeButton);
 		
 		JLayeredPane fileManager = new JLayeredPane();
 		border.add(fileManager);
@@ -1098,13 +1124,8 @@ public class XCMGUI extends Main {
 		oFTAddButton.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				
-				JFileChooser fc = new JFileChooser();
-				FileList fileList = filesOriginal;
-				JButton clearButton = oFTClearButton;
-				
-				addFileToFileList(fc, fileList, clearButton, new java.io.File(getConfig()
-							.getUnpackedPath()));
+				addFileToFileList(new JFileChooser(), filesOriginal, oFTClearButton,
+							new java.io.File(getConfig().getUnpackedPath()));
 			}
 		});
 		originalFilesToolbar.add(oFTAddButton);
@@ -1118,12 +1139,7 @@ public class XCMGUI extends Main {
 		oFTRemoveButton.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				
-				FileList fileList = filesOriginal;
-				JButton clearButton = oFTClearButton;
-				JButton removeButton = oFTRemoveButton;
-				
-				removeSelectedFiles(fileList, clearButton, removeButton);
+				removeSelectedFiles(filesOriginal, oFTClearButton, oFTRemoveButton);
 			}
 		});
 		originalFilesToolbar.add(oFTRemoveButton);
@@ -1136,12 +1152,7 @@ public class XCMGUI extends Main {
 		oFTClearButton.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
-				
-				FileList fileList = filesOriginal;
-				JButton clearButton = oFTClearButton;
-				JButton removeButton = oFTRemoveButton;
-				
-				clearAllFiles(fileList, clearButton, removeButton);
+				clearAllFiles(filesOriginal, oFTClearButton, oFTRemoveButton);
 			}
 		});
 		oFTClearButton.setFont(new Font("Tahoma", Font.PLAIN, 11));
@@ -1366,10 +1377,20 @@ public class XCMGUI extends Main {
 		button.setActionCommand("");
 		toolBar.add(button);
 		
+		Component horizontalStrut_4 = Box.createHorizontalStrut(20);
+		toolBar.add(horizontalStrut_4);
+		JLabel lblFilterText = new JLabel("Filter Text:", SwingConstants.TRAILING);
+		toolBar.add(lblFilterText);
+		
+		Component horizontalStrut_5 = Box.createHorizontalStrut(20);
+		horizontalStrut_5.setPreferredSize(new Dimension(2, 0));
+		horizontalStrut_5.setMinimumSize(new Dimension(2, 0));
+		toolBar.add(horizontalStrut_5);
+		
 		JSplitPane splitPaneFileBrowser = new JSplitPane();
-		panel_2.add(splitPaneFileBrowser, BorderLayout.CENTER);
-		splitPaneFileBrowser.setResizeWeight(0.5);
 		splitPaneFileBrowser.setOneTouchExpandable(true);
+		panel_2.add(splitPaneFileBrowser, BorderLayout.CENTER);
+		splitPaneFileBrowser.setResizeWeight(0.8);
 		splitPaneFileBrowser.setBorder(null);
 		splitPaneFileBrowser.setAlignmentY(0.5f);
 		splitPaneFileBrowser.setAlignmentX(0.5f);
@@ -1385,8 +1406,6 @@ public class XCMGUI extends Main {
 		
 		JScrollPane scrollPDirectoryTree = new JScrollPane();
 		scrollPDirectoryTree.setAutoscrolls(true);
-		scrollPDirectoryTree
-					.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		modDirectiresPane.add(scrollPDirectoryTree, BorderLayout.CENTER);
 		scrollPDirectoryTree.setPreferredSize(new Dimension(3, 223));
 		scrollPDirectoryTree.setMinimumSize(new Dimension(22, 222));
@@ -1394,68 +1413,105 @@ public class XCMGUI extends Main {
 		modDirectoryTree = TableList.createTable();
 		scrollPDirectoryTree.setViewportView(modDirectoryTree.getTable());
 		
-		ListSelectionModel listSelectionModel = modDirectoryTree.getTable()
-					.getSelectionModel();
-		listSelectionModel.addListSelectionListener(new ListSelectionListener() {
+		modDirectoryTree.getTable().getSelectionModel().addListSelectionListener(
+					new ListSelectionListener() {
+						
+						@Override
+						public void valueChanged(ListSelectionEvent e) {
+							MyTableModel model = (MyTableModel) modDirectoryTree.getTable().getModel();
+							
+							int viewRow = modDirectoryTree.getTable().getSelectedRow();
+							
+							if (viewRow < 0) {
+								installButton.setEnabled(false);
+								uninstallButton.setEnabled(false);
+								
+								textFieldModSelected.setText("");
+								textFieldInstallAuthor.setText("");
+								installModDescription.setText("");
+								
+							} else {
+								int modelRow = modDirectoryTree.getTable()
+											.convertRowIndexToModel(viewRow);
+								
+								if (modelRow != -1) {
+									ModFile f = model.getFile(modelRow);
+									
+									XMod mod = null;
+									try {
+										mod = (XMod) getUnMarshaller().unmarshal(f.file);
+									} catch (JAXBException ex) {
+										ex.printStackTrace(System.err);
+									}
+									if (mod != null) {
+										textFieldModSelected.setText(mod.getName());
+										textFieldInstallAuthor.setText(mod.getAuthor());
+										installModDescription.setText(mod.getDescription());
+										if (model.getIsInstalled(modelRow)) {
+											installButton.setEnabled(false);
+											uninstallButton.setEnabled(true);
+										} else {
+											installButton.setEnabled(true);
+											uninstallButton.setEnabled(false);
+										}
+									}
+								} else {
+									installButton.setEnabled(false);
+									uninstallButton.setEnabled(false);
+									textFieldModSelected.setText("");
+									textFieldInstallAuthor.setText("");
+									installModDescription.setText("");
+								}
+							}
+						}
+					});
+		
+		final TableRowSorter<MyTableModel> sorter = new TableRowSorter<MyTableModel>(
+					modDirectoryTree.getModel());
+		
+		modDirectoryTree.getTable().setRowSorter(sorter);
+		
+		txtNameFilter = new JTextField();
+		txtNameFilter.setMaximumSize(new Dimension(50, 23));
+		toolBar.add(txtNameFilter);
+		txtNameFilter.setColumns(10);
+		txtNameFilter.getDocument().addDocumentListener(new DocumentListener() {
+			public void changedUpdate(DocumentEvent e) {
+				newFilter();
+			}
+			public void insertUpdate(DocumentEvent e) {
+				newFilter();
+			}
+			public void removeUpdate(DocumentEvent e) {
+				newFilter();
+			}
 			
-			@Override
-			public void valueChanged(ListSelectionEvent e) {
-				ListSelectionModel lsm = (ListSelectionModel) e.getSource();
-				MyTableModel model = (MyTableModel) modDirectoryTree.getTable().getModel();
-				
-				int firstIndex = e.getFirstIndex();
-				int lastIndex = e.getLastIndex();
-				boolean isAdjusting = e.getValueIsAdjusting();
-				int select = -1;
-				
-				if (lsm.isSelectionEmpty()) {
-					
-					installButton.setEnabled(false);
-					textFieldModSelected.setText("");
-					textFieldInstallAuthor.setText("");
-					installModDescription.setText("");
-					
-				} else {
-					// Find out which indexes are selected.
-					int minIndex = lsm.getMinSelectionIndex();
-					int maxIndex = lsm.getMaxSelectionIndex();
-					for (int i = minIndex; i <= maxIndex; i++) {
-						if (lsm.isSelectedIndex(i)) {
-							select = i;
-						}
-					}
-					
-					if (select != -1) {
-						installButton.setEnabled(true);
-						
-						File f = model.getFile(select);
-						
-						XMod mod = null;
-						try {
-							mod = (XMod) getUnMarshaller().unmarshal(f);
-						} catch (JAXBException ex) {
-							ex.printStackTrace(System.err);
-						}
-						if (mod != null) {
-							textFieldModSelected.setText(mod.getName());
-							textFieldInstallAuthor.setText(mod.getAuthor());
-							installModDescription.setText(mod.getDescription());
-						}
-					} else {
-						installButton.setEnabled(false);
-						textFieldModSelected.setText("");
-						textFieldInstallAuthor.setText("");
-						installModDescription.setText("");
-					}
+			/**
+			 * Update the row filter regular expression from the expression in the
+			 * text box.
+			 */
+			private void newFilter() {
+				RowFilter<MyTableModel, Object> rf = null;
+				// If current expression doesn't parse, don't update.
+				try {
+					rf = RowFilter.regexFilter(txtNameFilter.getText());
+				} catch (java.util.regex.PatternSyntaxException e) {
+					return;
 				}
+				sorter.setModel(modDirectoryTree.getModel());
+				sorter.setRowFilter(rf);
+				modDirectoryTree.getTable().setRowSorter(sorter);
 			}
 		});
-		listSelectionModel.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		modDirectoryTree.getTable().setSelectionModel(listSelectionModel);
+		
+		lblFilterText.setLabelFor(txtNameFilter);
+		
+		Component horizontalGlue = Box.createHorizontalGlue();
+		toolBar.add(horizontalGlue);
 		
 		JPanel modFilesPane = new JPanel();
+		modFilesPane.setRequestFocusEnabled(false);
 		modFilesPane.setToolTipText("The mod files.");
-		modFilesPane.setMinimumSize(new Dimension(100, 160));
 		modFilesPane.setBorder(new TitledBorder(null, "Mod Files", TitledBorder.LEADING,
 					TitledBorder.TOP, null, null));
 		modFilesPane.setAutoscrolls(true);
@@ -1464,8 +1520,6 @@ public class XCMGUI extends Main {
 		
 		JScrollPane scrollPaneFileTree = new JScrollPane();
 		scrollPaneFileTree.setAutoscrolls(true);
-		scrollPaneFileTree
-					.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		scrollPaneFileTree.setMinimumSize(new Dimension(22, 222));
 		scrollPaneFileTree.setPreferredSize(new Dimension(22, 223));
 		modFilesPane.add(scrollPaneFileTree, BorderLayout.CENTER);
@@ -1580,6 +1634,7 @@ public class XCMGUI extends Main {
 						fileManagerInstall.setVisible(false);
 						fileManagerMake.setVisible(true);
 						installButton.setEnabled(false);
+						uninstallButton.setEnabled(false);
 						makeButton.setEnabled(true);
 						FACING_STREAM = MAKE;
 						// System.setOut(MAKE);
@@ -1593,6 +1648,7 @@ public class XCMGUI extends Main {
 						modFileTree.getTree().clearSelection();
 						FACING_STREAM = INSTALL;
 						// System.setOut(INSTALL);
+						resetMods(false);
 						break;
 					case HOME_TAB :
 						fileManagerInstall.setVisible(false);
@@ -1600,6 +1656,7 @@ public class XCMGUI extends Main {
 						fileManagerHome.setVisible(true);
 						makeButton.setEnabled(false);
 						installButton.setEnabled(false);
+						uninstallButton.setEnabled(false);
 						FACING_STREAM = MAIN;
 						// System.setOut(MAIN);
 					default :
@@ -1751,17 +1808,19 @@ public class XCMGUI extends Main {
 			String modAuthor = fieldModAuthor.getText();
 			String modDesc = fieldModDescription.getText();
 			String ini = selectIni.getTextField().getText();
-			
+			String version = textFieldModVersion.getText();
+
 			List<Path> originalFiles = filesOriginal.getListModel();
 			List<Path> editedFiles = filesEdited.getListModel();
 			
-			runMake(modName, modAuthor, modDesc, ini == "" ? null : ini, originalFiles,
+			runMake(modName, modAuthor, modDesc, version, ini == "" ? null : ini, originalFiles,
 						editedFiles, src);
 			
 		}
 		
-		private void runMake(String modName, String modAuthor, String modDesc, String ini,
-					List<Path> originalFiles, List<Path> editedFiles, final JComponent src) {
+		private void runMake(String modName, String modAuthor, String modDesc,
+					String version, String ini, List<Path> originalFiles, List<Path> editedFiles,
+					final JComponent src) {
 			
 			Path iniPath = Paths.get(ini);
 			
@@ -1790,10 +1849,10 @@ public class XCMGUI extends Main {
 							"Files must match.", JOptionPane.ERROR_MESSAGE);
 				return;
 			} else {
-				List<File> files = modDirectoryTree.getRoots();
+				List<XMod> files = modDirectoryTree.getMods();
 				
-				for (File f : files) {
-					if (f.getName().equals(modName + ".xmod.export.xml")) {
+				for (XMod m : files) {
+					if (m.getName().equals(modName)) {
 						JOptionPane.showMessageDialog(frame,
 									"This mod name already exists. Please change.", "Invalid mod name.",
 									JOptionPane.ERROR_MESSAGE);
@@ -1822,6 +1881,7 @@ public class XCMGUI extends Main {
 			modConfig.setDescription(modDesc);
 			modConfig.setOriginalFiles(originalFiles);
 			modConfig.setEditedFiles(editedFiles);
+			modConfig.setVersion(version);
 			
 			if (!ini.isEmpty()) {
 				modConfig.setIni(ini);
@@ -1974,10 +2034,32 @@ public class XCMGUI extends Main {
 			final JComponent src = (JComponent) e.getSource();
 			
 			JTable table = modDirectoryTree.getTable();
-			java.io.File xmod = modDirectoryTree.getModel().getFile(table.getSelectedRows()[0]);
+			ModFile xmod = null;
+			int viewRow = table.getSelectedRow();
 			
-			int n = JOptionPane.showConfirmDialog(frame, "Confirm to continue.",
-						"Install mod.", JOptionPane.OK_CANCEL_OPTION);
+			String msg = null;
+			
+			if (viewRow < 0) {
+				msg = "Unknown selection error occured.";
+			} else {
+				int modelRow = table.convertRowIndexToModel(viewRow);
+				
+				if (modDirectoryTree.getModel().getIsInstalled(modelRow)) {
+					msg = "Mod is already installed.";
+				}
+				xmod = modDirectoryTree.getModel().getFile(modelRow);
+			}
+			
+			if (msg != null) {
+				JOptionPane.showMessageDialog(frame, msg, "Install Error",
+							JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			
+			String filename = xmod.file.getName();
+			
+			int n = JOptionPane.showConfirmDialog(frame, "Confirm to continue.", "Install ["
+						+ filename + "]", JOptionPane.OK_CANCEL_OPTION);
 			
 			switch (n) {
 				case JOptionPane.NO_OPTION :
@@ -1987,12 +2069,14 @@ public class XCMGUI extends Main {
 				default :
 					break;
 			}
-			final Installer main = new Installer(xmod, false);
-			final RunInBackground<Object> install = new RunInBackground<Object>(frame, main,
-						"Installing " + xmod.getName(), src) {
+			
+			final File mod = xmod.file;
+			final Installer ins = new Installer(mod, false);
+			final RunInBackground<Object> install = new RunInBackground<Object>(frame, ins,
+						"Installing " + filename, src) {
 				@Override
 				protected void after(Error e, Object ret) {
-					afterInstallTry(this, (Installer) main, src);
+					afterInstallTry(this, ins, src, mod);
 				}
 			};
 			install.addPropertyChangeListener(install);
@@ -2000,15 +2084,70 @@ public class XCMGUI extends Main {
 		}
 	}
 	
+	class UninstallAction implements ActionListener {
+		
+		public void actionPerformed(ActionEvent e) {
+			final JComponent src = (JComponent) e.getSource();
+			
+			JTable table = modDirectoryTree.getTable();
+			ModFile xmod = null;
+			int viewRow = table.getSelectedRow();
+			
+			String msg = null;
+			
+			if (viewRow < 0) {
+				msg = "Unknown selection error occured.";
+			} else {
+				int modelRow = table.convertRowIndexToModel(viewRow);
+				
+				if (!modDirectoryTree.getModel().getIsInstalled(modelRow)) {
+					msg = "Mod is not installed.";
+				}
+				xmod = modDirectoryTree.getModel().getFile(modelRow);
+			}
+			
+			if (msg != null) {
+				JOptionPane.showMessageDialog(frame, msg, "Install Error",
+							JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			
+			int n = JOptionPane.showConfirmDialog(frame, "Confirm to continue.", "Install ["
+						+ xmod.file.getName() + "]", JOptionPane.OK_CANCEL_OPTION);
+			
+			switch (n) {
+				case JOptionPane.NO_OPTION :
+					return;
+				case JOptionPane.CANCEL_OPTION :
+					return;
+				default :
+					break;
+			}
+			
+			final File uninstall = Paths.get("mods", xmod.shortName,
+						xmod.shortName + ModInstall.FILE_EXT).toFile();
+			final Uninstaller ins = new Uninstaller(uninstall);
+			final RunInBackground<Object> install = new RunInBackground<Object>(frame, ins,
+						"Unnstalling " + xmod.file.getName(), src) {
+				@Override
+				protected void after(Error e, Object ret) {
+					afterUninstallTry(this, ins, src, uninstall);
+				}
+			};
+			install.addPropertyChangeListener(install);
+			install.execute();
+		}
+		
+	}
 	public void afterInstallTry(final RunInBackground<Object> install, final Installer ins,
-				final JComponent src) {
+				final JComponent src, final File modFile) {
 		
 		Object ret = null;
 		try {
 			ret = install.get();
 		} catch (InterruptedException | ExecutionException ex) {}
 		
-		final XMod installed = ((Installer) ins).getInstallPackage();
+		final XMod installed = (XMod) ((Installer) ins).getInstallPackage();
 		Error e = ins.getError();
 		
 		if (installed.getIsInstalled()) {
@@ -2017,7 +2156,7 @@ public class XCMGUI extends Main {
 									frame,
 									"If you have changed files they need to be patched into XComGame.exe.\nWould you like to run XShape on XComGame.exe?",
 									"Run XShape.", JOptionPane.YES_NO_OPTION);
-			
+			resetMods(false);
 			switch (n) {
 				case JOptionPane.YES_OPTION :
 					
@@ -2050,7 +2189,7 @@ public class XCMGUI extends Main {
 					msg = "Upk file could not be accessed please close other programs.";
 					break;
 				case INS_UPK_RES_NF :
-					msg = "Upk resource could not be found. The mod may already be installed.";
+					msg = "Original upk resource could not be found. The resource may already be changed.";
 					break;
 				case XML_SAVE_ERROR :
 					msg = "The log could not be saved. Changes may need to be reverted.";
@@ -2080,7 +2219,110 @@ public class XCMGUI extends Main {
 												frame, ins, "Trying install again..." + installed.getName(), src) {
 										@Override
 										protected void after(Error e, Object ret) {
-											afterInstallTry(this, (Installer) ins, src);
+											afterInstallTry(this, ins, src, modFile);
+										}
+									};
+									install.addPropertyChangeListener(install);
+									install.execute();
+								}
+							};
+							dib.execute();
+							break;
+						default :
+					}
+					msg = null;
+				default :
+					break;
+			}
+			if (msg != null) {
+				JOptionPane.showMessageDialog(frame, msg, title, JOptionPane.ERROR_MESSAGE);
+			}
+		}
+	}
+	
+	public void afterUninstallTry(final RunInBackground<Object> install,
+				final Uninstaller ins, final JComponent src, final File modFile) {
+		
+		Object ret = null;
+		try {
+			ret = install.get();
+		} catch (InterruptedException | ExecutionException ex) {}
+		
+		final ModInstall uninstalled = (ModInstall) ((Uninstaller) ins).getUninstallPackage();
+		Error e = ins.getError();
+		
+		if (uninstalled.getIsInstalled() != null && !uninstalled.getIsInstalled()) {
+			int n = JOptionPane
+						.showConfirmDialog(
+									frame,
+									"If you have changed files they need to be patched into XComGame.exe.\nWould you like to run XShape on XComGame.exe?",
+									"Run XShape.", JOptionPane.YES_NO_OPTION);
+			resetMods(false);
+			switch (n) {
+				case JOptionPane.YES_OPTION :
+					
+					Path exeFile = Paths.get(getConfig().getXcomPath(), RELATIVE_EXE_PATH);
+					Path iniFile = null;
+					
+					// if (uninstalled.getIni() != null) {
+					// iniFile = Paths.get("mods", uninstalled.getName(),
+					// uninstalled.getIni());
+					// if (Files.notExists(iniFile)) {
+					// iniFile = null;
+					// }
+					// }
+					runXShapeInBackGround(exeFile, editedUpks, iniFile, src, FACING_STREAM);
+					return;
+				default :
+					return;
+			}
+		} else {
+			
+			String msg = null;
+			String title = e.getMsg();
+			
+			print(title, "");
+			
+			switch (e) {
+				case INS_UPK_FILE_NF :
+					msg = "Please check your settings and check the install file.";
+					break;
+				case INS_UPK_FILE_NA :
+					msg = "Upk file could not be accessed please close other programs.";
+					break;
+				case INS_UPK_RES_NF :
+					msg = "Original upk resource could not be found. The resource may already be changed.";
+					break;
+				case XML_SAVE_ERROR :
+					msg = "The log could not be saved. Changes may need to be reverted.";
+					break;
+				case INS_FATAL :
+					msg = "Fatal error: The searcher threads were closed unexpectedly. Try again.";
+					break;
+				case INS_UPK_FILE_COMPRESSED :
+					@SuppressWarnings("unchecked")
+					List<Path> uncFiles = (List<Path>) ret;
+					
+					String fileNames = "";
+					
+					for (Path p : uncFiles) {
+						fileNames += (p.getFileName() + " ");
+					}
+					int n = JOptionPane.showConfirmDialog(XCMGUI.getFrame(), "Cannot continue. ["
+								+ fileNames + "] " + (uncFiles.size() > 1 ? "are" : "is")
+								+ " not decompressed do you want to decompress now?", title,
+								JOptionPane.YES_NO_OPTION);
+					switch (n) {
+						case JOptionPane.YES_OPTION :
+							DecompressInBackGround dib = new DecompressInBackGround(uncFiles, src) {
+								@Override
+								protected void after() {
+									final RunInBackground<Object> install = new RunInBackground<Object>(
+												frame, ins, "Trying install again..." + uninstalled.getName(),
+												src) {
+										@Override
+										protected void after(Error e, Object ret) {
+											afterUninstallTry(this, ins, src, modFile);
 										}
 									};
 									install.addPropertyChangeListener(install);
@@ -2109,7 +2351,7 @@ public class XCMGUI extends Main {
 			ret = install.get();
 		} catch (InterruptedException | ExecutionException ex) {}
 		
-		final XMod installed = ((Installer) ins).getInstallPackage();
+		final XMod installed = (XMod) ((Installer) ins).getInstallPackage();
 		Error e = ins.getError();
 		
 		String msg = null;
@@ -2121,8 +2363,7 @@ public class XCMGUI extends Main {
 			case NOTHING :
 				JOptionPane.showMessageDialog(frame, "Mod creation has finished.",
 							"Finished Mod.", JOptionPane.PLAIN_MESSAGE);
-				modDirectoryTree.resetMods();
-				modFileTree.resetMods();
+				resetMods(false);
 				break;
 			case INS_UPK_FILE_NF :
 				msg = "Please check your settings.";
@@ -2199,7 +2440,7 @@ public class XCMGUI extends Main {
 				switch (n) {
 					case JOptionPane.YES_OPTION :
 						
-						java.util.ArrayList<Path> paths = new java.util.ArrayList<>();
+						Vector<Path> paths = new Vector<>();
 						
 						paths.add(Paths.get(getConfig().getCookedPath().toString(), "Core.upk"));
 						paths.add(Paths.get(getConfig().getCookedPath().toString(), "XComGame.upk"));
@@ -2230,9 +2471,8 @@ public class XCMGUI extends Main {
 	/**
 	 * Runs XSaphe in the background thread.
 	 */
-	public static void runXShapeInBackGround(final Path exeFile,
-				final java.util.ArrayList<Path> paths, final Path ini, final JComponent src,
-				final Stream stream) {
+	public static void runXShapeInBackGround(final Path exeFile, final List<Path> paths,
+				final Path ini, final JComponent src, final Stream stream) {
 		XShape xs = null;
 		String title = "XShape";
 		try {
@@ -2295,7 +2535,7 @@ public class XCMGUI extends Main {
 	/**
 	 * Runs XSaphe in the background thread.
 	 */
-	public static void runXShapeInBackGround(Path exeFile, java.util.ArrayList<Path> paths,
+	public static void runXShapeInBackGround(Path exeFile, List<Path> paths,
 				JComponent src, Stream stream) {
 		runXShapeInBackGround(exeFile, paths, null, src, stream);
 	}
@@ -2357,15 +2597,13 @@ public class XCMGUI extends Main {
 	public static void decompressWithToolCheck(final Path fileToDecom, Path decompress,
 				Boolean inBackGround) throws DownloadFailedException, ZipException {
 		if (Files.notExists(decompress)) {
-			URL url = null;
 			try {
-				url = new URL(HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP);
-			} catch (MalformedURLException ignore) {
-				ignore.printStackTrace(System.err);
+				Path zip = Main.download("decompress.zip", new URL(
+							HTTP_WWW_GILDOR_ORG_DOWN_DECOMPRESS_ZIP));
+				Main.unZip(zip, Paths.get("tools"));
+			} catch (MalformedURLException ex) {
+				ex.printStackTrace();
 			}
-			final String saveAs = "decompress.zip";
-			Path zip = Main.download(saveAs, url);
-			Main.unZip(zip, Paths.get("tools"));
 		}
 		if (inBackGround) {
 			new DecompressInBackGround(fileToDecom).execute();
@@ -2383,17 +2621,13 @@ public class XCMGUI extends Main {
 				throws DownloadFailedException, ZipException {
 		
 		if (Files.notExists(extract)) {
-			
-			URL url = null;
 			try {
-				url = new URL(HTTP_WWW_GILDOR_ORG_DOWN_EXTRACT_ZIP);
-			} catch (MalformedURLException ignore) {
-				ignore.printStackTrace(System.err);
+				Path zip = Main.download("extract.zip", new URL(
+							HTTP_WWW_GILDOR_ORG_DOWN_EXTRACT_ZIP));
+				Main.unZip(zip, Paths.get("tools"));
+			} catch (MalformedURLException ex) {
+				ex.printStackTrace();
 			}
-			final String saveAs = "extract.zip";
-			
-			Path zip = Main.download(saveAs, url);
-			Main.unZip(zip, Paths.get("tools"));
 		}
 		if (inBackGround) {
 			new ExtractInBackGround(upkToExtract, src, parent).execute();
@@ -2424,24 +2658,43 @@ public class XCMGUI extends Main {
 	}
 	
 	public static void resetMods() {
+		resetMods(true);
+	}
+	
+	public static void resetMods(Boolean isRandom) {
 		getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-		try {
-			Thread.sleep(random.nextInt(2000));
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
+		if (isRandom) {
+			try {
+				Thread.sleep(random.nextInt(2000));
+			} catch (InterruptedException ex) {
+				ex.printStackTrace();
+			}
 		}
 		modDirectoryTree.resetMods();
 		modFileTree.resetMods();
 		getFrame().setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 	}
 	
-	public static void desktopOpen(final File file) {
-		try {
-			XCMGUI.getConfig();
-			Desktop.getDesktop().open(file);
-		} catch (IOException ex) {}
+	public static void desktopBrowse(final String url) {
+		if (Desktop.isDesktopSupported()) {
+			try {
+				Desktop.getDesktop().browse(new URL(url).toURI());
+			} catch (IOException | URISyntaxException ex) {
+				ex.printStackTrace(System.err);
+			}
+		}
 	}
 	
+	public static void desktopOpen(final File file) {
+		if (Desktop.isDesktopSupported()) {
+			try {
+				XCMGUI.getConfig();
+				Desktop.getDesktop().open(file);
+			} catch (IOException ex) {
+				ex.printStackTrace(System.err);
+			}
+		}
+	}
 	private static void print(String... strings) {
 		print(MAIN, strings);
 	}

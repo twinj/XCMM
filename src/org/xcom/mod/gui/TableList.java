@@ -4,6 +4,7 @@ import static java.nio.file.FileVisitResult.CONTINUE;
 
 import java.awt.Component;
 import java.awt.GridLayout;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -18,12 +19,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import javax.swing.*;
+import javax.swing.Icon;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumn;
 import javax.xml.bind.JAXBException;
 
 import org.xcom.main.shared.Main;
@@ -38,7 +47,12 @@ public class TableList extends JPanel implements TableModelListener {
 	private final static boolean DEBUG = true;
 	
 	private JTable table;
-		
+	
+	protected String[] columnToolTips = {
+				"Mod's name", // "Mod Name" assumed obvious
+				"Mod's version", "If checked, mod is installed and ready"
+	};
+	
 	/**
 	 * File system view.
 	 */
@@ -46,11 +60,31 @@ public class TableList extends JPanel implements TableModelListener {
 	
 	private TableList(FileTreeNode rootTreeNode, Boolean installTree, List<File> roots) {
 		super(new GridLayout(1, 0));
-		table = new JTable(new MyTableModel(roots));
+		table = new JTable(new MyTableModel(roots)) {
+
+			private static final long serialVersionUID = 460701972275507320L;
+
+			// Implement table header tool tips.
+			@Override
+			protected JTableHeader createDefaultTableHeader() {
+				return new JTableHeader(columnModel) {
+					private static final long serialVersionUID = 1L;
+
+					public String getToolTipText(MouseEvent e) {
+						//String tip = null;
+						java.awt.Point p = e.getPoint();
+						int index = columnModel.getColumnIndexAtX(p.x);
+						int realIndex = columnModel.getColumn(index).getModelIndex();
+						return columnToolTips[realIndex];
+					}
+				};
+			}
+		};
+		table.setAutoCreateRowSorter(true);
 		table.getModel().addTableModelListener(this);
 		
-		// Set up renderer and editor for the Favorite Color column.
-		table.setDefaultRenderer(File.class, new FileCellRenderer());
+		table.setDefaultRenderer(ModFile.class, new FileCellRenderer());	
+		table.setDefaultRenderer(String.class, new StringCellRenderer());		
 		
 		table.setFillsViewportHeight(true);
 		
@@ -60,6 +94,8 @@ public class TableList extends JPanel implements TableModelListener {
 		
 		// Add the scroll pane to this panel.
 		add(scrollPane);
+		
+		table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 	}
 	
 	public static TableList createTable() {
@@ -88,11 +124,10 @@ public class TableList extends JPanel implements TableModelListener {
 	}
 	@SuppressWarnings("serial")
 	class MyTableModel extends AbstractTableModel {
-		private String[] columnNames = {
+		protected String[] columnNames = {
 					"Mod Name", "Version", "Active"
 		};
-		
-		private List<File> roots;
+		private List<XMod> mods;
 		
 		private Data data;
 		
@@ -104,7 +139,7 @@ public class TableList extends JPanel implements TableModelListener {
 			static final int columnCount = 3;
 			
 			class Row extends Vector<Object> {
-				public Row(File file, String version, Boolean active) {
+				public Row(ModFile file, String version, Boolean active) {
 					super(0);
 					this.add(0, file);
 					this.add(1, version);
@@ -116,16 +151,17 @@ public class TableList extends JPanel implements TableModelListener {
 		
 		public MyTableModel(List<File> roots) {
 			this.data = new Data(0);
-			this.roots = roots;
+			this.mods = new Vector<XMod>(0);
 			
 			for (File f : roots) {
 				XMod mod = null;
 				try {
 					mod = (XMod) Main.getUnMarshaller().unmarshal(f);
 				} catch (JAXBException ex) {}
-				data.add(data.new Row(f,
-							(mod.getModVersion() == null ? "" : mod.getModVersion()), mod
+				data.add(data.new Row(new ModFile(f, mod.getName()),
+							(mod.getModVersion() == null ? "not set" : mod.getModVersion()), mod
 										.getIsInstalled() == null ? false : mod.getIsInstalled()));
+				mods.add(mod);
 			}
 			// fireTableStructureChanged();
 			fireTableDataChanged();
@@ -151,12 +187,12 @@ public class TableList extends JPanel implements TableModelListener {
 			return (Boolean) data.get(row).get(2);
 		}
 		
-		public File getFile(int row) {
-			return (File) data.get(row).get(0);
+		public ModFile getFile(int row) {
+			return (ModFile) data.get(row).get(0);
 		}
 		
 		public Path getPath(int row) {
-			return getFile(row).toPath();
+			return getFile(row).file.toPath();
 		}
 		
 		public String getVersion(int row) {
@@ -181,11 +217,11 @@ public class TableList extends JPanel implements TableModelListener {
 		public boolean isCellEditable(int row, int col) {
 			// Note that the data/cell address is constant,
 			// no matter where the cell appears onscreen.
-//			if (col < 2) {
-//				return false;
-//			} else {
-//				return true;
-//			}
+			// if (col < 2) {
+			// return false;
+			// } else {
+			// return true;
+			// }
 			return false;
 		}
 		
@@ -221,6 +257,19 @@ public class TableList extends JPanel implements TableModelListener {
 				System.out.println();
 			}
 			System.out.println("--------------------------");
+		}
+	}
+	
+	class ModFile {
+		File file;
+		String shortName;
+		ModFile(File f, String name) {
+			this.file = f;
+			this.shortName = name;
+		}
+		@Override 
+		public String toString() {
+			return shortName;
 		}
 	}
 	
@@ -312,7 +361,8 @@ public class TableList extends JPanel implements TableModelListener {
 		public Component getTableCellRendererComponent(JTable table, Object value,
 					boolean isSelected, boolean hasFocus, int row, int column) {
 			
-			File file = (File) value;
+			ModFile mod = (ModFile) value;
+			File file = mod.file;
 			String filename = "";
 			if (file != null) {
 				filename = this.rootNameCache.get(file);
@@ -339,8 +389,22 @@ public class TableList extends JPanel implements TableModelListener {
 		}
 	}
 	
-	public List<File> getRoots() {
-		return ((MyTableModel) table.getModel()).roots;
+private static class StringCellRenderer extends DefaultTableCellRenderer {
+
+	private static final long serialVersionUID = -3357526347914093895L;
+
+		public Component getTableCellRendererComponent(JTable table, Object value,
+					boolean isSelected, boolean hasFocus, int row, int column) {
+						
+			JLabel result = (JLabel) super.getTableCellRendererComponent(table, value,
+						isSelected, hasFocus, row, column);
+			
+			result.setHorizontalAlignment(CENTER);				
+			return result;
+		}
+	}
+	public List<XMod> getMods() {
+		return ((MyTableModel) table.getModel()).mods;
 	}
 	
 	public MyTableModel getModel() {
@@ -356,6 +420,18 @@ public class TableList extends JPanel implements TableModelListener {
 			this.setModel(new MyTableModel(getValidMods()));
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+		TableColumn column = null;
+		for (int i = 0; i < 3; i++) {
+		    column = table.getColumnModel().getColumn(i);
+		    if (i == 0) {
+		        column.setPreferredWidth(200); //first column is bigger
+		        column.setWidth(200); //first column is bigger
+		        column.sizeWidthToFit();
+
+		    } else {
+		        column.setPreferredWidth(30);
+		    }
 		}
 	}
 	

@@ -26,9 +26,9 @@ import org.xcom.mod.tools.xshape.MHash;
 @XmlRootElement(name = "XComMod")
 @XmlType(propOrder = {
 			"id", "name", "author", "modVersion", "description", "ini", "hash", "gameVersion",
-			"resFiles", "iniFiles"
+			"resFiles", "iniFiles", "isInstalled"
 })
-public class XMod extends ModFile implements Serializable, ModXml {
+public class XMod extends BaseMod implements Serializable, ModXml {
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -37,16 +37,16 @@ public class XMod extends ModFile implements Serializable, ModXml {
 	private static final String EXPORT_FILES_EDITED = "files\\edited\\";
 	
 	private Integer id;
-	private String hash = MHash.TEMP;	
-	private String name;	
+	private String hash = MHash.TEMP;
+	private String name;
 	private String author;
 	private String description;
 	private String modVersion;
 	private String gameVersion;
 	private String ini;
-	private boolean isInstalled;
 	private List<ResFile> resFiles;
 	private List<IniFile> iniFiles;
+	private boolean isInstalled;
 	
 	// Clean constructor required for serialisation
 	public XMod() {}
@@ -116,8 +116,7 @@ public class XMod extends ModFile implements Serializable, ModXml {
 		this.ini = ini;
 	}
 	
-	// @XmlElement(name = "IsInstalled")
-	@XmlTransient
+	@XmlElement(name = "IsInstalled")
 	public Boolean getIsInstalled() {
 		return isInstalled;
 	}
@@ -135,7 +134,7 @@ public class XMod extends ModFile implements Serializable, ModXml {
 		this.modVersion = version;
 	}
 	
-	@XmlElement(name = "Version")
+	@XmlElement(name = "GameVersion")
 	public String getGameVersion() {
 		return gameVersion;
 	}
@@ -220,4 +219,8 @@ public class XMod extends ModFile implements Serializable, ModXml {
 		return XCMGUI.GUI_NAME + ": MOD EXPORT";
 	}
 	
+	@Override
+	public void setModVersion(String modVersion) {
+		this.modVersion = modVersion;
+	}
 }

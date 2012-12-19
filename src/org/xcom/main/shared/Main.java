@@ -2,6 +2,7 @@ package org.xcom.main.shared;
 
 import java.awt.Desktop;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,9 +20,11 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
@@ -70,8 +73,9 @@ public abstract class Main implements Runnable {
 		INS_UPK_FILE_NA("Cooked .upk file not accessible."), //
 		INS_UPK_FILE_IO("Cooked .upk file use produced IO error."), //
 		INS_UPK_FILE_COMPRESSED("Cooked .upk file still compressed."), //
-		INS_UPK_RES_NF("Upk resource was not found in unpacked files"), //
+		INS_UPK_RES_NF("Resource with same checksum or hash was not found in upk."), //
 		INS_FATAL("Installer stopped for unknown reason."), //
+		INS_MOD_INSTALLED("Mod is already intsalled."), //
 		
 		MAK_MOD_ACCESS_ERROR("Could not access mod object or export file."), //
 		MAK_MOD_IO_ERROR("Could not process changes."), //
@@ -110,14 +114,17 @@ public abstract class Main implements Runnable {
 	public final static String MAIN_DELEGATE = "";
 	public final static String MAKE_DELEGATE = "";
 	public final static String INSTALL_DELEGATE = "";
+	public final static String UNINSTALL_DELEGATE = "";
+	
 	public final static String ERROR_DELEGATE = "";
 	
 	protected final static String RELATIVE_EXE_PATH = "\\Binaries\\Win32\\XComGame.exe";
 	protected final static String COMPRESSED_UPK_SIZE_EXT = ".uncompressed_size";
 	protected final static String RELATIVE_TOC_PATH = "\\XComGame\\PCConsoleTOC.txt";
 	private final static String UPK_HEADER = "C1832A9E"; // 32 bits
-
-	private final static String DECOMPRESSED_HEADER = UPK_HEADER + "4D033B00"; // 32 bits
+	
+	private final static String DECOMPRESSED_HEADER = UPK_HEADER + "4D033B00"; // 32
+																																							// bits
 	
 	protected final static int NUM_CPU = (Runtime.getRuntime().availableProcessors());
 	
@@ -135,14 +142,17 @@ public abstract class Main implements Runnable {
 	public static Stream MAIN = Stream.getStream(MAIN_DELEGATE);
 	public static Stream MAKE = Stream.getStream(MAKE_DELEGATE);
 	public static Stream INSTALL = Stream.getStream(INSTALL_DELEGATE);
+	public static Stream UNINSTALL = Stream.getStream(UNINSTALL_DELEGATE);
+	
 	public static Stream ERR = Stream.getErrorStream(ERROR_DELEGATE);
 	
 	public final static String USER_DIR = System.getProperty("user.dir");
+	private static String gameVersion;
 	
 	protected Boolean DONE;
 	protected volatile Object ret = null;
 	
-	protected static java.util.ArrayList<Path> editedUpks = new java.util.ArrayList<Path>();
+	protected static List<Path> editedUpks = new ArrayList<Path>();
 	
 	public Main() {
 		DONE = false;
@@ -676,5 +686,19 @@ public abstract class Main implements Runnable {
 	public static JFrame getFrame() {
 		return contentPane;
 	}
+
+	public static String getGameVersion() {
+		if (gameVersion == null) {
+			Path path = Paths.get(getConfig().getXcomPath() , "Version.txt");
+			
+			try {
+				Scanner sc = new Scanner(path.toFile());
+				sc.nextLine();
+				gameVersion = sc.nextLine().trim();				
+			} catch (FileNotFoundException ex) {}			
+		}
+		return gameVersion;
+	}
+
 	
 }

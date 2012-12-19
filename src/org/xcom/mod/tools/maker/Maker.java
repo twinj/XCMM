@@ -70,7 +70,7 @@ final public class Maker extends Main {
 		
 		try {
 			saveXml(modConfig);
-			copyFile(modConfig.getXmlSavePath(), Paths.get("temp\\history.xml"), true);
+			copyFile(modConfig.getXmlSavePath(), Paths.get("config", "history.xml"), true);
 			printXml(modConfig);
 			xMod = generateXMod(modConfig);
 			saveXModFiles(modConfig, xMod);
@@ -194,7 +194,7 @@ final public class Maker extends Main {
 		print("MOD GENERATE ACTION", "");
 		
 		XMod xMod = new XMod();
-		List<ResFile> changes;
+		Vector<ResFile> changes;
 		
 		changes = processResourceChanges(monfig);
 		
@@ -202,6 +202,8 @@ final public class Maker extends Main {
 		xMod.setName(monfig.getName());
 		xMod.setAuthor(monfig.getAuthor());
 		xMod.setDescription(monfig.getDescription());
+		xMod.setModVersion(monfig.getVersion());
+		xMod.setGameVersion(getGameVersion());
 		
 		if (monfig.getIni() != null) {
 			xMod.setIni(Paths.get(monfig.getIni()).getFileName().toString());
@@ -240,12 +242,12 @@ final public class Maker extends Main {
 	 * @throws CalculateHashException
 	 * @throws UpkFileNotExtractedException
 	 */
-	static List<ResFile> processResourceChanges(ModConfig mConfig)
+	static Vector<ResFile> processResourceChanges(ModConfig mConfig)
 				throws UpkFileNotExtractedException, CalculateHashException,
 				ProcessFileChangesException, DetectUpkChangesException {
 		
-		List<ResFile> changes = new ArrayList<ResFile>();
-		List<Path> uncFiles = new Vector<Path>();
+		Vector<ResFile> changes = new Vector<ResFile>();
+		Vector<Path> uncFiles = new Vector<Path>();
 		
 		int i = 0;
 		
@@ -321,10 +323,10 @@ final public class Maker extends Main {
 	 * Detect the changes made to the UPK file and return a List containing the
 	 * offset position and change data.
 	 */
-	static List<HexEdit> getUPKChanges(Path originalPath, Path modifedPath)
+	static Vector<HexEdit> getUPKChanges(Path originalPath, Path modifedPath)
 				throws DetectUpkChangesException {
 		
-		List<HexEdit> list = new ArrayList<HexEdit>();
+		Vector<HexEdit> list = new Vector<HexEdit>();
 		
 		try (InputStream modified = Files.newInputStream(modifedPath);
 					InputStream original = Files.newInputStream(originalPath)) {

@@ -8,15 +8,16 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 
 import org.xcom.mod.tools.xshape.MHash;
 
 @XmlRootElement(name = "ModInstall")
 @XmlType(propOrder = {
-			"id", "name", "hash", "modVersion", "gameVersion", "resFiles"
+			"id", "name", "hash", "XMod", "modVersion", "gameVersion", "resFiles"
 })
-public class ModInstall extends ModFile implements Serializable, ModXml {
+public class ModInstall extends BaseMod implements Serializable, ModXml {
 	
 	private static final long serialVersionUID = -7133083554953556991L;
 	
@@ -29,6 +30,10 @@ public class ModInstall extends ModFile implements Serializable, ModXml {
 	private String gameVersion;
 	private List<ResFile> resFiles;
 	
+	private String XMod;
+
+	private boolean isInstalled = true;
+	
 	public ModInstall() {}
 	
 	public ModInstall(XMod mod, List<ResFile> resFiles) {
@@ -36,6 +41,7 @@ public class ModInstall extends ModFile implements Serializable, ModXml {
 		this.hash = mod.getHash();
 		this.modVersion = mod.getModVersion();
 		this.gameVersion = mod.getGameVersion();
+		this.XMod = mod.getXmlSavePath().toString();
 		this.resFiles = resFiles;
 	}
 	
@@ -97,18 +103,40 @@ public class ModInstall extends ModFile implements Serializable, ModXml {
 	
 	@Override
 	public Path getBasePath() {
-		// TODO Auto-generated method stub
-		return null;
+		return Paths.get("mods", name);
 	}
 	
 	@Override
 	public String getPrintName() {
-		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 	
+	@Override
 	public void setId(Integer id) {
 		this.id = id;
+	}
+	
+	@XmlElement(name = "XModPath")
+	public String getXMod() {
+		return XMod;
+	}
+	
+	public void setXMod(String path) {
+		this.XMod = path;
+	}
+	
+	public void setIsInstalled(boolean b) {
+		this.isInstalled = b;
+	}
+	
+	@XmlTransient
+	public Boolean  getIsInstalled() {
+		return isInstalled;
+	}
+
+	@XmlTransient
+	public Path getXModPath() {
+		return Paths.get(XMod);
 	}
 	
 }

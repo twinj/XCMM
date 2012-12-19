@@ -31,6 +31,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipException;
 
@@ -232,7 +233,7 @@ public class PInstall extends Main {
 							
 							Path exeFile = Paths.get(getConfig().getXcomPath(), RELATIVE_EXE_PATH);
 							Path iniFile = Paths.get(getConfig().getUnpackedPath(), "install.ini");
-							runXShapeInBackGround(exeFile, (ArrayList<Path>) f.getUpks(), Files
+							runXShapeInBackGround(exeFile, new Vector<Path>(f.getUpks()), Files
 										.exists(iniFile) == true ? iniFile : null,
 										(JComponent) e.getSource(), Main.MAIN,
 										"XCMM Installer has finished re-patching the game.");
@@ -571,7 +572,7 @@ public class PInstall extends Main {
 							ret = install.get();
 						} catch (InterruptedException | ExecutionException ex) {}
 						
-						final XMod installed = ((Installer) main).getInstallPackage();
+						final XMod installed = (XMod) ((Installer) main).getInstallPackage();
 						Error e = main.getError();
 						
 						if (installed.getIsInstalled()) {
@@ -708,7 +709,7 @@ public class PInstall extends Main {
 	
 	public static void main(String[] args) {
 		try {
-			getConfig();			
+			getConfig();
 			getUnMarshaller();
 			getMarshaller();
 		} catch (Exception e) {
@@ -737,9 +738,9 @@ public class PInstall extends Main {
 	/**
 	 * Runs XSaphe in the background thread.
 	 */
-	public static void runXShapeInBackGround(final Path exeFile,
-				final java.util.ArrayList<Path> paths, final Path ini, final JComponent src,
-				final Stream stream, final String doneMessage) {
+	public static void runXShapeInBackGround(final Path exeFile, final List<Path> paths,
+				final Path ini, final JComponent src, final Stream stream,
+				final String doneMessage) {
 		XShape xs = null;
 		String title = "XShape";
 		try {

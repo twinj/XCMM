@@ -24,6 +24,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
@@ -75,16 +76,15 @@ final public class Installer extends Main {
 	
 	@Override
 	public void run() {
+		XMod copy = null;
 		
-		if (!upateUpkPositionOnly) {
-			printActionMessage("INSTALL");
-		} else {
-			printActionMessage("GET RESOURCE UPK POSITIONS");
-		}
 		try {
 			installPackage = (XMod) getUnMarshaller().unmarshal(modFile);
+			copy = (XMod) getUnMarshaller().unmarshal(modFile);
 			if (!upateUpkPositionOnly) {
-				printXml(installPackage, "MOD FILE FOR INSTALLATION");
+				printXml(installPackage, "INSTALL XMOD");
+			}  else {
+				printActionMessage("GET RESOURCE UPK POSITIONS");
 			}
 		} catch (Exception e) {
 			try {
@@ -95,30 +95,29 @@ final public class Installer extends Main {
 				return;
 			}
 		}
-		
-		// Get upk files for each resource
-		List<ResFile> files = installPackage.getResFiles();
+
 		try {
-			upkFiles = findResourceUpkFile(files, stream);
+			upkFiles = findResourceUpkFile(copy.getResFiles(), stream);
 			
-			List<ResFile> out = null;
-			
-			out = makeUPKChangesAndSearch(files, new Vector<Path>(upkFiles),
+			List<ResFile> out = makeUPKChangesAndSearch(copy.getResFiles(), upkFiles,
 						upateUpkPositionOnly, stream);
-						
+			
 			if (!upateUpkPositionOnly) {
 				installPackage.setIsInstalled(true);
+				int i = 0;
+				for (ResFile f : out) {
+					copy.getResFiles().get(i++).setUpkOffset(f.getUpkOffset());
+				}
+				
 				ModInstall log = new ModInstall(installPackage, out);
 				getGameState().getMods().add(installPackage);
 				getGameState().getInstallData().add(log);
-
 				saveXml(log);
 				printXml(log);
 				saveXml(getGameState());
-					
 			} else {
 				installPackage.setResFiles(out);
-			}		
+			}
 			saveXml(installPackage);
 			
 		} catch (UpkFileNotDecompressedException e) {
@@ -153,7 +152,7 @@ final public class Installer extends Main {
 		printActionMessage("INSTALL");
 		
 		try {
-			installPackage = (XMod)  getUnMarshaller().unmarshal(modFile);
+			installPackage = (XMod) getUnMarshaller().unmarshal(modFile);
 			printXml(installPackage, "MOD EXPORT FILE FOR INSTALLATION");
 		} catch (JAXBException e) {
 			throw new ExportFileAccessException("JAXBException");
@@ -164,8 +163,8 @@ final public class Installer extends Main {
 		
 		upkFiles = findResourceUpkFile(files, stream);
 		
-		List<ResFile> out = makeUPKChangesAndSearch(files, new Vector<Path>(upkFiles),
-					upateUpkPositionOnly, stream);
+		List<ResFile> out = makeUPKChangesAndSearch(files, upkFiles, upateUpkPositionOnly,
+					stream);
 		
 		installPackage.setResFiles(out);
 		installPackage.setIsInstalled(true);
@@ -183,8 +182,8 @@ final public class Installer extends Main {
 				throws UpkFileNotDecompressedException, UpkFileNotFoundException,
 				UpkFileAccessException {
 		
-		List<Path> upkFiles = new Vector<Path>(files.size());
-		List<Path> uncFiles = new Vector<Path>(files.size());
+		List<Path> upkFiles = new ArrayList<Path>(files.size());
+		List<Path> uncFiles = new ArrayList<Path>(files.size());
 		
 		// Get all changed upk files from the resources
 		for (ResFile f : files) {
@@ -221,10 +220,9 @@ final public class Installer extends Main {
 	 * Initiates worker threads to make Upk file changes.
 	 * 
 	 */
-	static List<ResFile> makeUPKChangesAndSearch(List<ResFile> files,
-				Vector<Path> upkFiles, Boolean upateUpkPositionOnly, Stream stream)
-				throws UpkResourceNotFoundException, UpkFileAccessException,
-				SearchInterruptedException {
+	static List<ResFile> makeUPKChangesAndSearch(List<ResFile> files, List<Path> upkFiles,
+				Boolean upateUpkPositionOnly, Stream stream) throws UpkResourceNotFoundException,
+				UpkFileAccessException, SearchInterruptedException {
 		
 		if (!upateUpkPositionOnly) {
 			print(stream, "INSTALLING RESOURCE CHANGES", "");
@@ -298,9 +296,15 @@ final public class Installer extends Main {
 									sc.write(w.resultBytes);
 									sc.write(eof);
 								}
+								
+								editedUpks.add(upkFile);
+								files.set(i, w.mod);
+								// files.get(i).setUpkOffset(w.startOffset);
+								// files.get(i).setIsInstalled(true);
+								// files.get(i).setSearchHash(MHash.toString(w.newHash));
+								// files.get(i).setCheckSum(w.newSum);
+								// files.get(i).setSearchHashLength(w.newSize);
 							}
-							editedUpks.add(upkFile);
-							files.get(i).setIsInstalled(true);
 						}
 						print(stream, "SAVING RESOURCE LOCATION [" + w.startOffset, "]");
 						files.get(i).setUpkOffset(w.startOffset);
@@ -369,8 +373,8 @@ final public class Installer extends Main {
 		final CountDownLatch mainCDLatch = new CountDownLatch(1);
 		final CountDownLatch workerCDLatch = new CountDownLatch(1);
 		workers[0] = new Worker(f, buffer.array(), f.getUpkOffset(), f.getUpkOffset()
-					+ f.getSearchHashLength() - 1, getDigest(), mainCDLatch, workerCDLatch, threads, 1,
-					false);
+					+ f.getSearchHashLength() - 1, getDigest(), mainCDLatch, workerCDLatch,
+					threads, 1, false);
 		threads[0] = new Thread(workers[0]);
 		threads[0].start();
 		mainCDLatch.await();

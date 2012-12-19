@@ -40,8 +40,9 @@ final public class Worker implements Runnable {
 	final int start;
 	final int end;
 	final MessageDigest md;
-	int id;
+	final int id;
 	boolean upateUpkPositionOnly = false;
+	final private Stream stream;
 	
 	final CountDownLatch mainCountDownLock;
 	final CountDownLatch workerCountDownLock;
@@ -51,7 +52,9 @@ final public class Worker implements Runnable {
 	volatile int startOffset = -1;
 	volatile int endOffset = -1;
 	volatile boolean isFound = false;
-	private Stream stream;
+	volatile int newSum = -1;
+	volatile byte[] newHash = null;
+	volatile byte[] bufferSegmt = null;
 	
 	public Worker(ResFile mod, byte[] buffer, int start, int end, MessageDigest md,
 				CountDownLatch mainCountDownLock, CountDownLatch workerCountDownLock,
@@ -71,7 +74,7 @@ final public class Worker implements Runnable {
 		if (upateUpkPositionOnly) {
 			this.stream = Main.MAKE;
 		} else {
-		this.stream = Main.INSTALL;
+			this.stream = Main.INSTALL;
 		}
 	}
 	
@@ -104,32 +107,47 @@ final public class Worker implements Runnable {
 						print("SEARCHING", (work += "."));
 					}
 					
-					final byte[] bufferSegmt = Arrays.copyOfRange(buffer, j, m);
+					bufferSegmt = Arrays.copyOfRange(buffer, j, m);
+					resultBytes = new byte[bufferSegmt.length];				
+					System.arraycopy(bufferSegmt, 0, resultBytes, 0, bufferSegmt.length);
+					
 					final byte[] hash = md.digest(bufferSegmt);
 					
 					if (Arrays.equals(hash, searchHash)) {
 						print("FOUND - CHECKSUM & HASH MATCH");
 						
-						
 						if (!upateUpkPositionOnly) {
-							for (final HexEdit c : mod.getChanges()) {
+							for (int x = 0; x < mod.getChanges().size(); x++) {
+								final HexEdit c = mod.getChanges().get(x);
 								
 								print("BUFFER OFFSET [" + c.getOffset(), "] CHANGED TO [" + c.getData(),
 											"]");
 								
 								if (!mod.getIsSameSize()) {
 									resultBytes = MHash
-												.hexStringGetBytes(mod.getChanges().get(0).getData());
+												.hexStringGetBytes(mod.getChanges().get(x).getData());
 									
 									print("BUFFER OFFSET START [" + j, "] END OFFSET [" + (m), "] WITH ["
 												+ resultBytes.length + "] BYTES TO WRITE");
+									
+									mod.getChanges().get(x).setBackup(mod.getChanges().get(x).getData());
+									mod.getChanges().get(x).setData(MHash.toString(bufferSegmt));
+									
 								} else {
 									
-									bufferSegmt[c.getOffset()] = DatatypeConverter.parseHexBinary(c
+									resultBytes[c.getOffset()] = DatatypeConverter.parseHexBinary(c
 												.getData())[0];
 									
 									print("BUFFER OFFSET [" + c.getOffset(),
 												"] CHANGED TO [" + c.getData(), "]");
+									
+									String hexStringData = Integer.toHexString(
+												bufferSegmt[c.getOffset()] & 0xff).toUpperCase();
+									
+									if (hexStringData.length() == 1) hexStringData = "0" + hexStringData;
+									
+									mod.getChanges().get(x).setBackup(mod.getChanges().get(x).getData());
+									mod.getChanges().get(x).setData(hexStringData);
 								}
 							}
 							
@@ -137,9 +155,16 @@ final public class Worker implements Runnable {
 								// Instead of changes replace. Changes will be null in this
 								// instance so above code is skipped
 								endOffset = m;
-								
+								mod.setSearchHashLength(resultBytes.length);
+		
 							} else {
-								resultBytes = bufferSegmt;
+								newSum = 0;
+								for (int i = 0; i < resultBytes.length; i++) {
+									newSum += resultBytes[i] & 0xFF;
+								}
+								mod.setCheckSum(newSum);
+								// resultBytes = bufferSegmt;
+								mod.setSearchHash(MHash.toString(md.digest(resultBytes)));
 							}
 						}
 						
@@ -166,7 +191,6 @@ final public class Worker implements Runnable {
 		} catch (InterruptedException ex) {}
 		mainCountDownLock.countDown();
 	}
-	
 	private void print(String... strings) {
 		Main.print(stream, strings);
 	}

@@ -18,7 +18,7 @@ import org.xcom.mod.gui.XCMGUI;
  * @author Daniel Kemp
  */
 @XmlRootElement(name = "XModConfig")
-@XmlType(propOrder = { "name", "author", "description", "ini", "originalFilePaths", "editedFilePaths",  })
+@XmlType(propOrder = { "name", "author", "description", "version", "ini", "originalFilePaths", "editedFilePaths",  })
 public class ModConfig implements Serializable, ModXml {
 
 	private static final long serialVersionUID = 1L;
@@ -35,6 +35,7 @@ public class ModConfig implements Serializable, ModXml {
 	protected String author;
 	protected String description;
 	protected String ini;
+	protected String version;
 	protected List<String> originalFilePaths;
 	protected List<String> editedFilePaths;
 
@@ -82,6 +83,15 @@ public class ModConfig implements Serializable, ModXml {
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	
+	@XmlElement(name = "ModVersion")
+	public String getVersion() {
+		return this.version;
+	}
+
+	public void setVersion(String version) {
+		this.version = version;
 	}
 
 	@XmlElement(name = "Ini")
